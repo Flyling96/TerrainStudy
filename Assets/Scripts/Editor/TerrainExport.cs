@@ -19,8 +19,8 @@ public class TerrainExport : ScriptableWizard
     bool isSaveGPUMesh = true;
     int chunkWidth = 100; //块宽度（单位米）
     int chunkLength = 100; //块长度 （单位米）
-    int chunkQuadCountX = 2; //块中横向网格数
-    int chunkQuadCountZ = 2; //块中纵向网格数
+    int chunkQuadCountX = 100; //块中横向网格数
+    int chunkQuadCountZ = 100; //块中纵向网格数
     protected override bool DrawWizardGUI()
     {
         mapName = EditorGUILayout.TextField("地形名称", mapName);
@@ -148,8 +148,8 @@ public class TerrainExport : ScriptableWizard
             {
                 SaveTerrainMesh(chunkWidth, chunkLength, assetsPath, true);
                 SaveChunkTerrainMaterial(assetsPath + "/Chunks");
-                SaveChunkPrefab(assetsPath + "/Chunks");
-                SaveChunkTotalPrefab(assetsPath);
+                SaveChunkPrefab(assetsPath);
+                //SaveChunkTotalPrefab(assetsPath);
             }
             if (isSaveCPUMesh)
             {
@@ -562,7 +562,9 @@ public class TerrainExport : ScriptableWizard
         string prefabName = mapName + "_Total_Terrain.prefab";
         string meshName = mapName + "_Terrain_Mesh.asset";
         string matName = mapName + "_Total_Mat.mat";
-        SaveTerrainPrefab(path, meshName, matName, prefabName);
+        GameObject prefab = GetTerrainPrefab(path, meshName, matName, prefabName);
+        GameObject.DestroyImmediate(prefab);
+        prefab = null;
         EditorUtility.ClearProgressBar();
 
     }
@@ -570,60 +572,69 @@ public class TerrainExport : ScriptableWizard
     void SaveChunkPrefab(string path)
     {
         string chunkPath = "";
+        string totalPrefabName = mapName + "_Chunk_Total_Terrain.prefab";
         string prefabName = mapName + "_Chunk_{0}_Terrain.prefab";
         string meshName = mapName + "_Chunk_Mesh.asset";
         string matName = mapName + "_Chunk_{0}_Mat.mat";
         int index = 0;
+        GameObject childPrefab = null;
+        GameObject prefab = new GameObject();
         for (int j = 0; j < chunkCountZ; j++)
         {
             for (int i = 0; i < chunkCountX; i++)
             {
                 index = j * chunkCountX + i + 1;
-                chunkPath = path + "/Chunk_" + index;
+                chunkPath = path + "/Chunks/Chunk_" + index;
                 EditorUtility.DisplayProgressBar("保存地形块Prefab", "保存地形块Prefab:" + index + "/" + chunkCountX * chunkCountZ, (float)index / (chunkCountX * chunkCountZ));
-                SaveTerrainPrefab(chunkPath, meshName,string.Format(matName, index),string.Format(prefabName, index));
+                childPrefab = GetTerrainPrefab(chunkPath, meshName,string.Format(matName, index),string.Format(prefabName, index));
+                childPrefab.transform.parent = prefab.transform;
+                childPrefab.transform.localPosition = new Vector3(i * chunkWidth, 0, j * chunkLength);
+                childPrefab = null;
             }
         }
+
+        PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, path + "/" + totalPrefabName, InteractionMode.UserAction);
+        GameObject.DestroyImmediate(prefab);
+        prefab = null;
         EditorUtility.ClearProgressBar();
     }
 
-    void SaveChunkTotalPrefab(string path)
-    {
-        string prefabName = mapName + "_Chunk_Total_Terrain.prefab";
-        string childPrefabName = mapName + "_Chunk_{0}_Terrain.prefab";
-        string chunkPath = "";
-        GameObject childPrefab = null;
-        GameObject prefab = new GameObject();
-        int index = 0;
+    //废弃，会导致Unity闪退
+    //void SaveChunkTotalPrefab(string path)
+    //{
+    //    string prefabName = mapName + "_Chunk_Total_Terrain.prefab";
+    //    string childPrefabName = mapName + "_Chunk_{0}_Terrain.prefab";
+    //    string chunkPath = "";
+    //    GameObject childPrefab = null;
+    //    GameObject prefab = new GameObject();
+    //    int index = 0;
 
-        try
-        {
-            for (int j = 0; j < chunkCountZ; j++)
-            {
-                for (int i = 0; i < chunkCountX; i++)
-                {
-                    index = j * chunkCountX + i + 1;
-                    EditorUtility.DisplayProgressBar("整合地形块Prefab", "整合地形块Prefab:" + index + "/" + chunkCountX * chunkCountZ, (float)index / (chunkCountX * chunkCountZ));
-                    chunkPath = path + "/Chunks/Chunk_" + index;
-                    childPrefab = PrefabUtility.LoadPrefabContents(chunkPath + "/" + string.Format(childPrefabName, index));
-                    if (childPrefab == null) continue;
-                    childPrefab.transform.parent = prefab.transform;
-                    childPrefab.transform.localPosition = new Vector3(i * chunkWidth, 0, j * chunkLength);
-                }
-            }
-            PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, path + "/" + prefabName,InteractionMode.UserAction);
-            GameObject.DestroyImmediate(prefab);
-            prefab = null;
-        }
-        catch (System.Exception e)
-        {
-            Debug.Log(e.ToString());
-        }
+    //    for (int j = 0; j < chunkCountZ; j++)
+    //    {
+    //        for (int i = 0; i < chunkCountX; i++)
+    //        {
+    //            index = j * chunkCountX + i + 1;
+    //            EditorUtility.DisplayProgressBar("整合地形块Prefab", "整合地形块Prefab:" + index + "/" + chunkCountX * chunkCountZ, (float)index / (chunkCountX * chunkCountZ));
+    //            chunkPath = path + "/Chunks/Chunk_" + index;
+    //            childPrefab = PrefabUtility.LoadPrefabContents(chunkPath + "/" + string.Format(childPrefabName, index));
+    //            Debug.Log("Load Prefab" + index);
+    //            if (childPrefab == null) continue;
+    //            childPrefab.transform.parent = prefab.transform;
+    //            childPrefab.transform.localPosition = new Vector3(i * chunkWidth, 0, j * chunkLength);
+    //            childPrefab = null;
+    //        }
+    //    }
 
-        EditorUtility.ClearProgressBar();
-    }
+    //    Debug.Log("Start Save Total Prefab");
+    //    PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, path + "/" + prefabName, InteractionMode.UserAction);
+    //    AssetDatabase.ImportAsset(path + "/" + prefabName, ImportAssetOptions.Default);
+    //    GameObject.DestroyImmediate(prefab);
+    //    prefab = null;
 
-    void SaveTerrainPrefab(string path,string meshName,string matName,string prefabName)
+    //    EditorUtility.ClearProgressBar();
+    //}
+
+    GameObject GetTerrainPrefab(string path,string meshName,string matName,string prefabName)
     {
         GameObject prefab = new GameObject();
         prefab.AddComponent<MeshFilter>();
@@ -631,8 +642,9 @@ public class TerrainExport : ScriptableWizard
         prefab.GetComponent<MeshFilter>().mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
         prefab.GetComponent<MeshRenderer>().sharedMaterial = AssetDatabase.LoadAssetAtPath(path + "/" + matName, typeof(Material)) as Material;
         PrefabUtility.SaveAsPrefabAsset(prefab, path + "/" + prefabName);
-        GameObject.DestroyImmediate(prefab);
-        prefab = null;
+        return prefab;
+        //GameObject.DestroyImmediate(prefab);
+        //prefab = null;
     }
 
     
