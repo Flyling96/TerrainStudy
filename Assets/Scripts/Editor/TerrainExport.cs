@@ -15,8 +15,9 @@ public class TerrainExport : ScriptableWizard
 
     string mapName = "map004";
     bool isChunk = true;
-    bool isSaveCPUMesh = true;
+    bool isSaveCPUMesh = false;
     bool isSaveGPUMesh = true;
+    bool isGPUInstance = true;
     int chunkWidth = 100; //块宽度（单位米）
     int chunkLength = 100; //块长度 （单位米）
     int chunkQuadCountX = 100; //块中横向网格数
@@ -38,8 +39,17 @@ public class TerrainExport : ScriptableWizard
             chunkQuadCountZ = EditorGUILayout.IntField("纵向网格数(Z)", chunkQuadCountZ);
         }
 
-        isSaveCPUMesh = EditorGUILayout.Toggle("保存CPU计算高度的Mesh", isSaveCPUMesh);
-        isSaveGPUMesh = EditorGUILayout.Toggle("保存GPU计算高度所需Mesh和材质", isSaveGPUMesh);
+        isGPUInstance = EditorGUILayout.Toggle("采用GPU Instance", isGPUInstance);
+        if (!isGPUInstance)
+        {
+            isSaveCPUMesh = EditorGUILayout.Toggle("CPU计算地形高度", isSaveCPUMesh);
+            isSaveGPUMesh = EditorGUILayout.Toggle("GPU计算地形高度", isSaveGPUMesh);
+        }
+        else
+        {
+            isSaveCPUMesh = false;
+            isSaveGPUMesh = true;
+        }
 
         return true;
     }
@@ -129,7 +139,7 @@ public class TerrainExport : ScriptableWizard
         maxHeight = data.size.y;
 
 
-        SaveHeightNormalMap(totalPath);
+        SaveHeightNormalMap();
 
         if (isChunk)
         {
@@ -167,14 +177,19 @@ public class TerrainExport : ScriptableWizard
 
         if (isSaveCPUMesh)
         {
-            SaveHeightMesh(assetsPath);
+            SaveHeightMesh();
         }
 
         if (isSaveGPUMesh)
         {
             SaveTerrainMesh(data.size.x, data.size.z, assetsPath, false);
-            SaveTotalTerrainMaterial(assetsPath);
-            SaveTotalPrefab(assetsPath);
+            SaveTotalTerrainMaterial();
+            SaveTotalPrefab();
+        }
+
+        if(isGPUInstance)
+        {
+            SaveInstancePrefab();
         }
 
 
@@ -197,13 +212,16 @@ public class TerrainExport : ScriptableWizard
         return result;
     }
 
-    void SaveHeightNormalMap(string path)
+    Texture2D heightNormalTex = null;
+
+    #region 保存 HeightNormalTex
+    void SaveHeightNormalMap()
     {
         EditorUtility.DisplayProgressBar("保存高度法线图", "保存高度法线图:0/1", 0);
 
         string imageName = mapName + "_Total_HeightNormalMap.png";
 
-        Texture2D heightNormalMap = new Texture2D(data.heightmapWidth, data.heightmapHeight,TextureFormat.RGBA32, true);
+        heightNormalTex = new Texture2D(data.heightmapWidth, data.heightmapHeight,TextureFormat.RGBA32, true);
         Vector2 RG;
 
         GetNormalInfo();
@@ -213,13 +231,13 @@ public class TerrainExport : ScriptableWizard
             for (int i = 0; i < heightmapWidth; i++)
             {
                 RG = EncodeHeight(heights[i, j]);
-                heightNormalMap.SetPixel(i, j, new Color(RG.x, RG.y, normals[i,j].x, normals[i,j].z));
+                heightNormalTex.SetPixel(i, j, new Color(RG.x, RG.y, normals[i,j].x, normals[i,j].z));
             }
         }
-        heightNormalMap.Apply();
+        heightNormalTex.Apply();
 
-        byte[] rawData = heightNormalMap.EncodeToPNG();
-        File.WriteAllBytes(path + "/" + imageName, rawData);
+        byte[] rawData = heightNormalTex.EncodeToPNG();
+        File.WriteAllBytes(totalPath + "/" + imageName, rawData);
         AssetDatabase.Refresh();
 
         EditorUtility.ClearProgressBar();
@@ -314,7 +332,9 @@ public class TerrainExport : ScriptableWizard
         }
 
     }
+    #endregion
 
+    #region 保存 Mesh
     void SaveTerrainMesh(float width ,float length ,string path , bool isChunkMesh)
     {
         string meshName = "";
@@ -397,10 +417,10 @@ public class TerrainExport : ScriptableWizard
         EditorUtility.ClearProgressBar();
     }
 
-    void SaveHeightMesh(string path)
+    void SaveHeightMesh()
     {
         EditorUtility.DisplayProgressBar("保存高度Mesh", "保存地形块高度Mesh: 0/1", 0);
-        SaveSingleHeightMesh(false, path);
+        SaveSingleHeightMesh(false, assetsPath);
         EditorUtility.ClearProgressBar();
     }
 
@@ -492,12 +512,14 @@ public class TerrainExport : ScriptableWizard
 
         AssetDatabase.CreateAsset(m_mesh, path + "/" + meshName);
     }
+    #endregion
 
-    void SaveTotalTerrainMaterial(string path)
+    #region 保存 Material
+    void SaveTotalTerrainMaterial()
     {
         EditorUtility.DisplayProgressBar("保存整体地形材质", "保存整体地形材质: 0/1", 0);
 
-        string totalPath = path + "/" + mapName + "_Total_HeightNormalMap.png";
+        string totalPath = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
 
         TextureImporter heightNormalTexImporter = AssetImporter.GetAtPath(totalPath) as TextureImporter;
         heightNormalTexImporter.wrapMode = TextureWrapMode.Clamp;
@@ -509,7 +531,7 @@ public class TerrainExport : ScriptableWizard
         heightNormalTexImporter.SaveAndReimport();
         Texture2D heightNormalTex = AssetDatabase.LoadAssetAtPath(totalPath, typeof(Texture2D)) as Texture2D;
 
-        SaveTerrainMaterial(path, mapName + "_Total", heightNormalTex);
+        SaveTerrainMaterial(assetsPath, mapName + "_Total", heightNormalTex);
 
         EditorUtility.ClearProgressBar();
     }
@@ -554,15 +576,16 @@ public class TerrainExport : ScriptableWizard
         material.SetFloat("_MaxHeight", data.size.y);
         AssetDatabase.CreateAsset(material, matPath);
     }
+    #endregion
 
-
-    void SaveTotalPrefab(string path)
+    #region 保存 Prefab
+    void SaveTotalPrefab()
     {
         EditorUtility.DisplayProgressBar("保存地形Prefab", "保存地形Prefab: 0/1", 0);
         string prefabName = mapName + "_Total_Terrain.prefab";
         string meshName = mapName + "_Terrain_Mesh.asset";
         string matName = mapName + "_Total_Mat.mat";
-        GameObject prefab = GetTerrainPrefab(path, meshName, matName, prefabName);
+        GameObject prefab = GetTerrainPrefab(assetsPath, meshName, matName, prefabName);
         GameObject.DestroyImmediate(prefab);
         prefab = null;
         EditorUtility.ClearProgressBar();
@@ -587,6 +610,7 @@ public class TerrainExport : ScriptableWizard
                 chunkPath = path + "/Chunks/Chunk_" + index;
                 EditorUtility.DisplayProgressBar("保存地形块Prefab", "保存地形块Prefab:" + index + "/" + chunkCountX * chunkCountZ, (float)index / (chunkCountX * chunkCountZ));
                 childPrefab = GetTerrainPrefab(chunkPath, meshName,string.Format(matName, index),string.Format(prefabName, index));
+                childPrefab.name = string.Format(prefabName, index).Replace(".prefab","");
                 childPrefab.transform.parent = prefab.transform;
                 childPrefab.transform.localPosition = new Vector3(i * chunkWidth, 0, j * chunkLength);
                 childPrefab = null;
@@ -647,8 +671,73 @@ public class TerrainExport : ScriptableWizard
         //prefab = null;
     }
 
-    
 
+    #endregion
+
+    #region Instance 相关
+    void SaveInstancePrefab()
+    {
+        GameObject prefab = new GameObject();
+        prefab.name = mapName + "_Instance";
+        TerrainInstance terrainInstance = prefab.AddComponent<TerrainInstance>();
+        string meshName = mapName + "_Chunk_Mesh.asset";
+        Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
+        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ);
+
+        string path = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
+        Texture2D tex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
+        terrainInstance.SetMatData(tex, data.size.y);
+        //Material mat = terrainInstance.Mat;
+        //MaterialPropertyBlock prop = terrainInstance.Prop;
+        //UpdateProp(prop);
+        //UpdateMat(mat);
+        UpdateTRS(terrainInstance);
+        string prefabName = mapName + "_Instance.prefab";
+        PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, assetsPath + "/" + prefabName,InteractionMode.AutomatedAction);
+        //GameObject.DestroyImmediate(prefab);
+        //prefab = null;
+
+    }
+
+    //void UpdateProp(MaterialPropertyBlock prop)
+    //{
+    //    Vector4[] startEndUVs = new Vector4[chunkCountZ * chunkCountX];
+    //    int index = 0;
+    //    for (int j = 0; j < chunkCountZ; j++)
+    //    {
+    //        for(int i = 0; i < chunkCountX; i++)
+    //        {
+    //            index = j * chunkCountX + i;
+    //            startEndUVs[index] = (new Vector4((float)i / chunkCountX, (float)j / chunkCountZ, (float)(i + 1) / chunkCountX, (float)(j + 1) / chunkCountZ));
+    //        }
+    //    }
+    //    prop.SetVectorArray("_StartEndUV", startEndUVs);
+    //}
+
+    //void UpdateMat(Material mat)
+    //{
+    //    mat.SetTexture("_HeightNormalTex", heightNormalTex);
+    //    mat.SetFloat("_MaxHeight", data.size.y);
+    //}
+
+    void UpdateTRS(TerrainInstance terrainInstance)
+    {
+        Matrix4x4 matr;
+        int index = 0;
+        for (int j = 0; j < chunkCountZ; j++)
+        {
+            for (int i = 0; i < chunkCountX; i++)
+            {
+                index = j * chunkCountX + i;
+                matr = new Matrix4x4();
+                matr.SetTRS(new Vector3(i * chunkWidth, 0, j * chunkLength),
+                    terrainInstance.transform.rotation, Vector3.one);
+                terrainInstance.AddTRS(matr,index);
+            }
+        }
+    }
+
+    #endregion
 
 
 }

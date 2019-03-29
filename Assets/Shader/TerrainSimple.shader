@@ -8,7 +8,6 @@
     SubShader
     {
         Tags { "RenderType"="Opaque" }
-        LOD 100
 
         Pass
         {
@@ -26,8 +25,8 @@
 
             struct v2f
             {
-                float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
+				float2 uv : TEXCOORD0;
             };
 
             sampler2D _HeightNormalTex;
@@ -45,7 +44,7 @@
 				float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
 				o.uv = v.uv;
 				float2 heightTex = tex2Dlod(_HeightNormalTex, float4(o.uv.x, o.uv.y, 0, 0)).rg;
-				float height = DecodeHeight(heightTex);
+				float height = DecodeHeight(heightTex) * _MaxHeight;
 				worldPos.y = height;
 				o.vertex = mul(UNITY_MATRIX_VP, worldPos);
                 return o;
@@ -53,6 +52,7 @@
 
             fixed4 frag (v2f i) : SV_Target
             {
+				//return 1;
                 fixed4 col = tex2D(_HeightNormalTex, i.uv);
                 return col;
             }
