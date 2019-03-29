@@ -18,6 +18,7 @@ public class TerrainExport : ScriptableWizard
     bool isSaveCPUMesh = false;
     bool isSaveGPUMesh = true;
     bool isGPUInstance = true;
+    bool isDivideMaterial = false;
     int chunkWidth = 100; //块宽度（单位米）
     int chunkLength = 100; //块长度 （单位米）
     int chunkQuadCountX = 100; //块中横向网格数
@@ -49,6 +50,11 @@ public class TerrainExport : ScriptableWizard
         {
             isSaveCPUMesh = false;
             isSaveGPUMesh = true;
+        }
+
+        if(isSaveGPUMesh)
+        {
+            isDivideMaterial = EditorGUILayout.Toggle("划分块材质", isDivideMaterial);
         }
 
         return true;
@@ -153,12 +159,15 @@ public class TerrainExport : ScriptableWizard
             {
                 Directory.CreateDirectory(chunkPath);
             }
-            SaveChunkHeightNormalMap(chunkPath);
             if (isSaveGPUMesh)
             {
                 SaveTerrainMesh(chunkWidth, chunkLength, assetsPath, true);
-                SaveChunkTerrainMaterial(assetsPath + "/Chunks");
-                SaveChunkPrefab(assetsPath);
+                if (isDivideMaterial)
+                {
+                    SaveChunkHeightNormalMap(chunkPath);
+                    SaveChunkTerrainMaterial(assetsPath + "/Chunks");
+                    SaveChunkPrefab(assetsPath);
+                }
                 //SaveChunkTotalPrefab(assetsPath);
             }
             if (isSaveCPUMesh)
@@ -183,15 +192,17 @@ public class TerrainExport : ScriptableWizard
         if (isSaveGPUMesh)
         {
             SaveTerrainMesh(data.size.x, data.size.z, assetsPath, false);
-            SaveTotalTerrainMaterial();
-            SaveTotalPrefab();
+            if (isDivideMaterial)
+            {
+                SaveTotalTerrainMaterial();
+                SaveTotalPrefab();
+            }
         }
 
         if(isGPUInstance)
         {
             SaveInstancePrefab();
         }
-
 
     }
 
@@ -240,6 +251,16 @@ public class TerrainExport : ScriptableWizard
         File.WriteAllBytes(totalPath + "/" + imageName, rawData);
         AssetDatabase.Refresh();
 
+        //设置图片导入信息
+        TextureImporter heightNormalTexImporter = AssetImporter.GetAtPath(assetsPath + "/" + imageName) as TextureImporter;
+        heightNormalTexImporter.wrapMode = TextureWrapMode.Clamp;
+        heightNormalTexImporter.npotScale = TextureImporterNPOTScale.None;
+        TextureImporterPlatformSettings heightNormalTexSetting = heightNormalTexImporter.GetDefaultPlatformTextureSettings();
+        heightNormalTexSetting.format = TextureImporterFormat.RGBA32;
+        heightNormalTexSetting.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
+        heightNormalTexImporter.SetPlatformTextureSettings(heightNormalTexSetting);
+        heightNormalTexImporter.SaveAndReimport();
+
         EditorUtility.ClearProgressBar();
 
     }
@@ -258,7 +279,6 @@ public class TerrainExport : ScriptableWizard
             }
         }
 
-        AssetDatabase.Refresh();
         EditorUtility.ClearProgressBar();
     }
 
@@ -298,6 +318,18 @@ public class TerrainExport : ScriptableWizard
         byte[] rawData = heightNormalChunkMap.EncodeToPNG();
 
         File.WriteAllBytes(path + "/" + heightNormalName, rawData);
+
+        AssetDatabase.Refresh();
+
+        //设置图片导入信息
+        TextureImporter heightNormalTexImporter = AssetImporter.GetAtPath(path.Replace(Application.dataPath,"Assets") + "/" + heightNormalName) as TextureImporter;
+        heightNormalTexImporter.wrapMode = TextureWrapMode.Clamp;
+        heightNormalTexImporter.npotScale = TextureImporterNPOTScale.None;
+        TextureImporterPlatformSettings heightNormalTexSetting = heightNormalTexImporter.GetDefaultPlatformTextureSettings();
+        heightNormalTexSetting.format = TextureImporterFormat.RGBA32;
+        heightNormalTexSetting.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
+        heightNormalTexImporter.SetPlatformTextureSettings(heightNormalTexSetting);
+        heightNormalTexImporter.SaveAndReimport();
 
         //保存材质
         //if(isSaveGPUMesh)
@@ -519,17 +551,9 @@ public class TerrainExport : ScriptableWizard
     {
         EditorUtility.DisplayProgressBar("保存整体地形材质", "保存整体地形材质: 0/1", 0);
 
-        string totalPath = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
+        string ttotalPath = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
 
-        TextureImporter heightNormalTexImporter = AssetImporter.GetAtPath(totalPath) as TextureImporter;
-        heightNormalTexImporter.wrapMode = TextureWrapMode.Clamp;
-        heightNormalTexImporter.npotScale = TextureImporterNPOTScale.None;
-        TextureImporterPlatformSettings heightNormalTexSetting = heightNormalTexImporter.GetDefaultPlatformTextureSettings();
-        heightNormalTexSetting.format = TextureImporterFormat.RGBA32;
-        heightNormalTexSetting.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
-        heightNormalTexImporter.SetPlatformTextureSettings(heightNormalTexSetting);
-        heightNormalTexImporter.SaveAndReimport();
-        Texture2D heightNormalTex = AssetDatabase.LoadAssetAtPath(totalPath, typeof(Texture2D)) as Texture2D;
+        Texture2D heightNormalTex = AssetDatabase.LoadAssetAtPath(ttotalPath, typeof(Texture2D)) as Texture2D;
 
         SaveTerrainMaterial(assetsPath, mapName + "_Total", heightNormalTex);
 
@@ -540,7 +564,7 @@ public class TerrainExport : ScriptableWizard
     {
         string chunkPath = "";
         string matName = "";
-        string totalPath = "";
+        string ttotalPath = "";
         Texture2D heightNormalTex;
         TextureImporter heightNormalTexImporter;
         TextureImporterPlatformSettings heightNormalTexSetting;
@@ -550,16 +574,16 @@ public class TerrainExport : ScriptableWizard
             {
                 chunkPath = path + "/Chunk_" + (j * chunkCountX + i + 1);
                 matName = mapName + "_Chunk_" + (j * chunkCountX + i + 1);
-                totalPath = chunkPath + "/" + matName + "_HeightNormalMap.png";
-                heightNormalTexImporter = AssetImporter.GetAtPath(totalPath) as TextureImporter;
-                heightNormalTexImporter.wrapMode = TextureWrapMode.Clamp;
-                heightNormalTexImporter.npotScale = TextureImporterNPOTScale.None;
-                heightNormalTexSetting = heightNormalTexImporter.GetDefaultPlatformTextureSettings();
-                heightNormalTexSetting.format = TextureImporterFormat.RGBA32;
-                heightNormalTexSetting.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
-                heightNormalTexImporter.SetPlatformTextureSettings(heightNormalTexSetting);
-                heightNormalTexImporter.SaveAndReimport();
-                heightNormalTex = AssetDatabase.LoadAssetAtPath(totalPath, typeof(Texture2D)) as Texture2D;
+                ttotalPath = chunkPath + "/" + matName + "_HeightNormalMap.png";
+                //heightNormalTexImporter = AssetImporter.GetAtPath(totalPath) as TextureImporter;
+                //heightNormalTexImporter.wrapMode = TextureWrapMode.Clamp;
+                //heightNormalTexImporter.npotScale = TextureImporterNPOTScale.None;
+                //heightNormalTexSetting = heightNormalTexImporter.GetDefaultPlatformTextureSettings();
+                //heightNormalTexSetting.format = TextureImporterFormat.RGBA32;
+                //heightNormalTexSetting.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
+                //heightNormalTexImporter.SetPlatformTextureSettings(heightNormalTexSetting);
+                //heightNormalTexImporter.SaveAndReimport();
+                heightNormalTex = AssetDatabase.LoadAssetAtPath(ttotalPath, typeof(Texture2D)) as Texture2D;
                 EditorUtility.DisplayProgressBar("保存地形块材质", "保存地形块材质:" + (j * chunkCountX + i + 1) + "/" + chunkCountX * chunkCountZ, (float)(j * chunkCountX + i + 1) / (chunkCountX * chunkCountZ));
                 SaveTerrainMaterial(chunkPath, matName, heightNormalTex);
             }
