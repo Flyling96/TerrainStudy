@@ -258,6 +258,7 @@ public class TerrainExport : ScriptableWizard
         TextureImporterPlatformSettings heightNormalTexSetting = heightNormalTexImporter.GetDefaultPlatformTextureSettings();
         heightNormalTexSetting.format = TextureImporterFormat.RGBA32;
         heightNormalTexSetting.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
+        heightNormalTexSetting.maxTextureSize = 4096;
         heightNormalTexImporter.SetPlatformTextureSettings(heightNormalTexSetting);
         heightNormalTexImporter.SaveAndReimport();
 
