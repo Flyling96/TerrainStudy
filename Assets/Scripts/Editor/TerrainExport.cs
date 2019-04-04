@@ -707,7 +707,7 @@ public class TerrainExport : ScriptableWizard
         TerrainInstance terrainInstance = prefab.AddComponent<TerrainInstance>();
         string meshName = mapName + "_Chunk_Mesh.asset";
         Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
-        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ);
+        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation);
 
         string path = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
         Texture2D tex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
@@ -716,7 +716,7 @@ public class TerrainExport : ScriptableWizard
         //MaterialPropertyBlock prop = terrainInstance.Prop;
         //UpdateProp(prop);
         //UpdateMat(mat);
-        UpdateTRS(terrainInstance);
+        //UpdateTRS(terrainInstance);
         string prefabName = mapName + "_Instance.prefab";
         PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, assetsPath + "/" + prefabName,InteractionMode.AutomatedAction);
         //GameObject.DestroyImmediate(prefab);
@@ -745,22 +745,22 @@ public class TerrainExport : ScriptableWizard
     //    mat.SetFloat("_MaxHeight", data.size.y);
     //}
 
-    void UpdateTRS(TerrainInstance terrainInstance)
-    {
-        Matrix4x4 matr;
-        int index = 0;
-        for (int j = 0; j < chunkCountZ; j++)
-        {
-            for (int i = 0; i < chunkCountX; i++)
-            {
-                index = j * chunkCountX + i;
-                matr = new Matrix4x4();
-                matr.SetTRS(new Vector3(i * chunkWidth, 0, j * chunkLength),
-                    terrainInstance.transform.rotation, Vector3.one);
-                terrainInstance.AddTRS(matr,index);
-            }
-        }
-    }
+    //void UpdateTRS(TerrainInstance terrainInstance)
+    //{
+    //    Matrix4x4 matr;
+    //    int index = 0;
+    //    for (int j = 0; j < chunkCountZ; j++)
+    //    {
+    //        for (int i = 0; i < chunkCountX; i++)
+    //        {
+    //            index = j * chunkCountX + i;
+    //            matr = new Matrix4x4();
+    //            matr.SetTRS(new Vector3(i * chunkWidth, 0, j * chunkLength),
+    //                terrainInstance.transform.rotation, Vector3.one);
+    //            terrainInstance.AddTRS(matr,index);
+    //        }
+    //    }
+    //}
 
     #endregion
 

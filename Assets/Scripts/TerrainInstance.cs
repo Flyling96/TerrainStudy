@@ -47,11 +47,16 @@ public class TerrainInstance : MonoBehaviour
     [SerializeField]
     private Matrix4x4[] trs;
     [SerializeField]
-    private int instanceCount = 0;
+    private int instanceCountX = 0;
+    [SerializeField]
+    private int instanceCountZ = 0;
     [SerializeField]
     private Vector4[] startEndUVs;
     [SerializeField]
     private MatData matData;
+
+    private int instanceCount = 0;
+    private Matrix4x4[] tempTrs;
 
     private MaterialPropertyBlock prop;
     private Material mat;
@@ -71,22 +76,6 @@ public class TerrainInstance : MonoBehaviour
         InstanceMgr.instance.Remove(this);
     }
 
-    //public Material Mat
-    //{
-    //    get
-    //    {
-    //        return mat;
-    //    }
-    //}
-
-    //public MaterialPropertyBlock Prop
-    //{
-    //    get
-    //    {
-    //        return prop;
-    //    }
-    //}
-
     public void SetMatData(Texture2D tex,float max)
     {
         if(matData == null)
@@ -97,13 +86,15 @@ public class TerrainInstance : MonoBehaviour
     }
 
 
-    public void InitData(Mesh tempMesh,int countX,int countZ)
+    public void InitData(Mesh tempMesh,int countX,int countZ,int chunkWidth,int chunkLength,Quaternion rotation)
     {
         int count = countX * countZ;
         mesh = tempMesh;
         trs = new Matrix4x4[count];
         startEndUVs = new Vector4[count];
         instanceCount = count;
+        instanceCountX = countX;
+        instanceCountZ = countZ;
 
         int index = 0;
         for (int j = 0; j < countZ; j++)
@@ -114,18 +105,47 @@ public class TerrainInstance : MonoBehaviour
                 startEndUVs[index] = (new Vector4((float)i / countX, (float)j / countZ, (float)(i + 1) / countX, (float)(j + 1) / countZ));
             }
         }
+
+        Matrix4x4 matr;
+        index = 0;
+        for (int j = 0; j < countZ; j++)
+        {
+            for (int i = 0; i < countX; i++)
+            {
+                index = j * countX + i;
+                matr = new Matrix4x4();
+                matr.SetTRS(new Vector3(i * chunkWidth, 0, j * chunkLength),
+                    rotation, Vector3.one);
+                AddTRS(matr, index);
+            }
+        }
+
+        Init();
     }
+
+    int[] lodLevels;
+    Vector4[] neighborVertexCounts;
+    bool isInit = false;
 
     void Init()
     {
+        isInit = true;
+        instanceCount = instanceCountX * instanceCountZ;
         prop = new MaterialPropertyBlock();
         mat = new Material(Shader.Find(shaderName));
+        tempTrs = new Matrix4x4[instanceCount];
+        if(trs!=null)
+        {
+            tempTrs = trs.Clone() as Matrix4x4[];
+        }
+        lodLevels = new int[instanceCount];
+        neighborVertexCounts = new Vector4[instanceCount];
         mat.enableInstancing = true;
         sourcePos = transform.position;
     }
 
 
-    public void AddTRS(Matrix4x4 matr,int index)
+    void AddTRS(Matrix4x4 matr,int index)
     {
         if (index >= trs.Length) return;
         trs[index] = matr;
@@ -142,25 +162,102 @@ public class TerrainInstance : MonoBehaviour
         }
 
         prop.SetVectorArray("_StartEndUV", startEndUVs);
+        UpdateLodLevel();
+        prop.SetVectorArray("_TessVertexCounts", neighborVertexCounts);
+    }
+
+    void UpdateLodLevel()
+    {
+        Vector3 instancePos;
+        for(int i=0;i<instanceCount;i++)
+        {
+            instancePos = new Vector3(trs[i].m03, trs[i].m13, trs[i].m23);
+            lodLevels[i] = CaculateLodLevel(instancePos);
+        }
+
+        Vector4 neighborVertex;//上下左右
+        for(int j=0;j<instanceCountZ;j++)
+        {
+            for(int i=0;i<instanceCountX;i++)
+            {
+                neighborVertex = new Vector4();
+                neighborVertex.x = j == instanceCountZ - 1 ? CacuTessCount(lodLevels[j * instanceCountX + i]) : CacuTessCount(lodLevels[(j + 1) * instanceCountX + i]);//上
+                neighborVertex.y = j == 0 ? CacuTessCount(lodLevels[j * instanceCountX + i]) : CacuTessCount(lodLevels[(j - 1) * instanceCountX + i] );//下
+                neighborVertex.z = i == 0 ? CacuTessCount(lodLevels[j * instanceCountX + i]) : CacuTessCount(lodLevels[j * instanceCountX + i - 1]);//左
+                neighborVertex.w = i == instanceCountX - 1 ? CacuTessCount(lodLevels[j * instanceCountX + i]) : CacuTessCount(lodLevels[j * instanceCountX + i + 1]);//右
+                neighborVertexCounts[j * instanceCountX + i] = neighborVertex;
+            }
+        }
+
+    }
+
+    int CaculateLodLevel(Vector3 instancePos)
+    {
+        float distance = Vector3.Distance(instancePos, InstanceMgr.instance.mainCamera.transform.position);
+        int lodLevel = 1;
+
+        if(distance < 30)
+        {
+            lodLevel = 1;
+        }
+        else if(distance < 100)
+        {
+            lodLevel = 2;
+        }
+        else if(distance < 300)
+        {
+            lodLevel = 3;
+        }
+        else if(distance < 1000)
+        {
+            lodLevel = 4;
+        }
+        else
+        {
+            lodLevel = 5;
+        }
+
+        return lodLevel;
+    }
+
+    int CacuTessCount(int lodLevel)
+    {
+        switch (lodLevel)
+        {
+            case 1:
+                return 100;
+            case 2:
+                return 50;
+            case 3:
+                return 20;
+            case 4:
+                return 5;
+            case 5:
+                return 1;
+            default:
+                return 1;
+        }
+
+
     }
 
     Vector3 sourcePos;
 
     public void Draw()
     {
-        if (instanceCount == 0 || mesh == null) return;
+        if (instanceCount == 0 || mesh == null ||!isInit) return;
 
         for(int i = 0;i< trs.Length;i++)
         {
-            trs[i].m03 += (transform.position.x - sourcePos.x);
-            trs[i].m13 += (transform.position.y - sourcePos.y);
-            trs[i].m23 += (transform.position.z - sourcePos.z);
+            tempTrs[i].m03 += (transform.position.x - sourcePos.x);
+            tempTrs[i].m13 += (transform.position.y - sourcePos.y);
+            tempTrs[i].m23 += (transform.position.z - sourcePos.z);
         }
         sourcePos = transform.position;
 
         UpdateMaterial();
 
-        Graphics.DrawMeshInstanced(mesh, 0, mat, trs, instanceCount, prop);  
+        Graphics.DrawMeshInstanced(mesh, 0, mat, tempTrs, instanceCount, prop);  
 
     }
 

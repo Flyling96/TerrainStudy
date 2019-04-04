@@ -6,6 +6,12 @@ using UnityEngine;
 public class InstanceMgr : Singleton<InstanceMgr>
 {
     List<TerrainInstance> terrainInstanceList = new List<TerrainInstance>();
+    public Camera mainCamera;
+
+    private void OnEnable()
+    {
+        mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
+    }
 
     public void Register(TerrainInstance terrainInstance)
     {
