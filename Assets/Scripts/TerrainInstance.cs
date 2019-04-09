@@ -123,7 +123,8 @@ public class TerrainInstance : MonoBehaviour
         Init();
     }
 
-    int[] lodLevels;
+    float[] lodLevels;
+    float[] selfVertexCounts;
     Vector4[] neighborVertexCounts;
     bool isInit = false;
 
@@ -138,7 +139,8 @@ public class TerrainInstance : MonoBehaviour
         {
             tempTrs = trs.Clone() as Matrix4x4[];
         }
-        lodLevels = new int[instanceCount];
+        lodLevels = new float[instanceCount];
+        selfVertexCounts = new float[instanceCount];
         neighborVertexCounts = new Vector4[instanceCount];
         mat.enableInstancing = true;
         sourcePos = transform.position;
@@ -164,6 +166,7 @@ public class TerrainInstance : MonoBehaviour
         prop.SetVectorArray("_StartEndUV", startEndUVs);
         UpdateLodLevel();
         prop.SetVectorArray("_TessVertexCounts", neighborVertexCounts);
+        prop.SetFloatArray("_LODTessVertexCounts", selfVertexCounts);
     }
 
     void UpdateLodLevel()
@@ -173,6 +176,7 @@ public class TerrainInstance : MonoBehaviour
         {
             instancePos = new Vector3(trs[i].m03, trs[i].m13, trs[i].m23);
             lodLevels[i] = CaculateLodLevel(instancePos);
+            selfVertexCounts[i] = CacuTessCount(lodLevels[i]);
         }
 
         Vector4 neighborVertex;//上下左右
@@ -181,10 +185,15 @@ public class TerrainInstance : MonoBehaviour
             for(int i=0;i<instanceCountX;i++)
             {
                 neighborVertex = new Vector4();
-                neighborVertex.x = j == instanceCountZ - 1 ? CacuTessCount(lodLevels[j * instanceCountX + i]) : CacuTessCount(lodLevels[(j + 1) * instanceCountX + i]);//上
-                neighborVertex.y = j == 0 ? CacuTessCount(lodLevels[j * instanceCountX + i]) : CacuTessCount(lodLevels[(j - 1) * instanceCountX + i] );//下
-                neighborVertex.z = i == 0 ? CacuTessCount(lodLevels[j * instanceCountX + i]) : CacuTessCount(lodLevels[j * instanceCountX + i - 1]);//左
-                neighborVertex.w = i == instanceCountX - 1 ? CacuTessCount(lodLevels[j * instanceCountX + i]) : CacuTessCount(lodLevels[j * instanceCountX + i + 1]);//右
+                neighborVertex.x = j == instanceCountZ - 1 ? selfVertexCounts[j * instanceCountX + i] : selfVertexCounts[(j + 1) * instanceCountX + i];//上
+                neighborVertex.y = j == 0 ? selfVertexCounts[j * instanceCountX + i] : selfVertexCounts[(j - 1) * instanceCountX + i];//下
+                neighborVertex.z = i == 0 ? selfVertexCounts[j * instanceCountX + i] : selfVertexCounts[j * instanceCountX + i - 1];//左
+                neighborVertex.w = i == instanceCountX - 1 ? selfVertexCounts[j * instanceCountX + i] : selfVertexCounts[j * instanceCountX + i + 1];//右
+                //以小的为准，防止接缝
+                neighborVertex.x = Mathf.Min(selfVertexCounts[j * instanceCountX + i], neighborVertex.x);
+                neighborVertex.y = Mathf.Min(selfVertexCounts[j * instanceCountX + i], neighborVertex.y);
+                neighborVertex.z = Mathf.Min(selfVertexCounts[j * instanceCountX + i], neighborVertex.z);
+                neighborVertex.w = Mathf.Min(selfVertexCounts[j * instanceCountX + i], neighborVertex.w);
                 neighborVertexCounts[j * instanceCountX + i] = neighborVertex;
             }
         }
@@ -220,7 +229,7 @@ public class TerrainInstance : MonoBehaviour
         return lodLevel;
     }
 
-    int CacuTessCount(int lodLevel)
+    int CacuTessCount(float lodLevel)
     {
         switch (lodLevel)
         {

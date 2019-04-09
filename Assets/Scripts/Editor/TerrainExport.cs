@@ -26,28 +26,32 @@ public class TerrainExport : ScriptableWizard
     protected override bool DrawWizardGUI()
     {
         mapName = EditorGUILayout.TextField("地形名称", mapName);
-        isChunk = EditorGUILayout.Toggle("是否分块", isChunk);
-        if (isChunk)
-        {
-            chunkWidth = EditorGUILayout.IntField("块宽度(X)", chunkWidth);
-            chunkLength = EditorGUILayout.IntField("块长度(Z)", chunkLength);
-            chunkQuadCountX = EditorGUILayout.IntField("块横向网格数(X)", chunkQuadCountX);
-            chunkQuadCountZ = EditorGUILayout.IntField("块纵向网格数(Z)", chunkQuadCountZ);
-        }
-        else
-        {
-            chunkQuadCountX = EditorGUILayout.IntField("横向网格数(X)", chunkQuadCountX);
-            chunkQuadCountZ = EditorGUILayout.IntField("纵向网格数(Z)", chunkQuadCountZ);
-        }
 
         isGPUInstance = EditorGUILayout.Toggle("采用GPU Instance", isGPUInstance);
         if (!isGPUInstance)
         {
             isSaveCPUMesh = EditorGUILayout.Toggle("CPU计算地形高度", isSaveCPUMesh);
             isSaveGPUMesh = EditorGUILayout.Toggle("GPU计算地形高度", isSaveGPUMesh);
+            isChunk = EditorGUILayout.Toggle("是否分块", isChunk);
+            if (isChunk)
+            {
+                chunkWidth = EditorGUILayout.IntField("块宽度(X)", chunkWidth);
+                chunkLength = EditorGUILayout.IntField("块长度(Z)", chunkLength);
+                chunkQuadCountX = EditorGUILayout.IntField("块横向网格数(X)", chunkQuadCountX);
+                chunkQuadCountZ = EditorGUILayout.IntField("块纵向网格数(Z)", chunkQuadCountZ);
+            }
+            else
+            {
+                chunkQuadCountX = EditorGUILayout.IntField("横向网格数(X)", chunkQuadCountX);
+                chunkQuadCountZ = EditorGUILayout.IntField("纵向网格数(Z)", chunkQuadCountZ);
+            }
         }
         else
         {
+            chunkWidth = EditorGUILayout.IntField("块宽度(X)", chunkWidth);
+            chunkLength = EditorGUILayout.IntField("块长度(Z)", chunkLength);
+            chunkQuadCountX = 1;
+            chunkQuadCountZ = 1;
             isSaveCPUMesh = false;
             isSaveGPUMesh = true;
         }
