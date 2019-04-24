@@ -6,6 +6,9 @@
 		_Color("Color",Color) = (1,1,1,1)
 		_HeightNormalTex("Height Normal Texture",2D) = "white" {}
 		_MaxHeight("Max Height",Float) = 100.0
+		_TerrainMapArray("Terrain Map Array",2DArray) = "white" {}
+		_AlphaMap("Alpha Map",2D) = "white" {}
+
 	}
 		SubShader
 		{
@@ -49,15 +52,20 @@
 				float4 _Color;
 				sampler2D _HeightNormalTex;
 				float _MaxHeight;
+				sampler2D _AlphaMap;
+				uniform float4 _TerrainMapSize[30];
+				UNITY_DECLARE_TEX2DARRAY(_TerrainMapArray);
 
 #ifdef UNITY_INSTANCING_ENABLED
 				UNITY_INSTANCING_BUFFER_START(TerrainProps)
 					UNITY_DEFINE_INSTANCED_PROP(float4, _StartEndUV)
+					UNITY_DEFINE_INSTANCED_PROP(float4, _AlphaTexIndexs)
 					UNITY_DEFINE_INSTANCED_PROP(float4, _TessVertexCounts)
 					UNITY_DEFINE_INSTANCED_PROP(float, _LODTessVertexCounts)
 				UNITY_INSTANCING_BUFFER_END(TerrainProps)
 #else
 				float4 _StartEndUV;
+				float4 _AlphaTexIndexs;
 				float4 _TessVertexCounts;
 				float4 _LODTessVertexCounts;
 #endif
@@ -164,19 +172,40 @@
 					return o;
 				}
 
-
-				fixed4 frag(v2f i) : SV_Target
+				float2 GetRealUV(float2 uv, float index)
 				{
-					return float4(i.uv,0,1);
+					uv.x *= 1024.0f /_TerrainMapSize[index].x;
+					uv.x += _TerrainMapSize[index].z;
+					uv.y *= 1024.0f / _TerrainMapSize[index].y;
+					uv.y += _TerrainMapSize[index].w;
+					return uv;
+				}
+
+				float4 GetAlphaColor(float4 alphaTexIndexs, float2 uv)
+				{
+					float4 weight = tex2D(_AlphaMap, uv);
+					float4 color = UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.x), alphaTexIndexs.x)) * weight.x * step(0, alphaTexIndexs.x)+
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.y), alphaTexIndexs.y)) * weight.y * step(0, alphaTexIndexs.y) +
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.z), alphaTexIndexs.z)) * weight.z * step(0, alphaTexIndexs.z) +
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.w), alphaTexIndexs.w)) * weight.w * step(0, alphaTexIndexs.w);
+
+					return color;
+				}
+
+
+				float4 frag(v2f i) : SV_Target
+				{
 					UNITY_SETUP_INSTANCE_ID(i);
 #ifdef UNITY_INSTANCING_ENABLED
-					float4 tessCount = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _TessVertexCounts);
+					float4 alphaTexIndexs = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _AlphaTexIndexs);
 #else
-					float4 tessCount = _TessVertexCounts;
+					float4 alphaTexIndexs = _AlphaTexIndexs;
 #endif
-					fixed4 col = tex2D(_HeightNormalTex, i.uv);
-					return tessCount/20;
+					float4 col = GetAlphaColor(alphaTexIndexs,i.uv);
+					return col;
 				}
+
+
 				ENDCG
 			}
 		}

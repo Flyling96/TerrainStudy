@@ -13,9 +13,13 @@ public class TerrainInstance : MonoBehaviour
         [SerializeField]
         Texture2D heightNormalTex;
         [SerializeField]
-        float maxHeight;
+        Texture2D alphaMap;
         [SerializeField]
-        public bool isChange = false;
+        Texture2DArray terrainMapArray;
+        [SerializeField]
+        Vector4[] terrainMapSize;
+        [SerializeField]
+        float maxHeight;
 
         public Texture2D HeightNormalTex
         {
@@ -33,11 +37,37 @@ public class TerrainInstance : MonoBehaviour
             }
         }
 
-        public void SetValue(Texture2D tex, float max )
+        public Texture2D AlphaMap
         {
-            heightNormalTex = tex;
+            get
+            {
+                return alphaMap;
+            }
+        }
+
+        public Texture2DArray TerrainMapArray
+        {
+            get
+            {
+                return terrainMapArray;
+            }
+        }
+
+        public Vector4[] TerrainMapSize
+        {
+            get
+            {
+                return terrainMapSize;
+            }
+        }
+
+        public void SetValue(Texture2D hnTex, float max, Texture2D aTex,Texture2DArray tMapArray,Vector4[] tMapSize)
+        {
+            heightNormalTex = hnTex;
             maxHeight = max;
-            isChange = true;
+            alphaMap = aTex;
+            terrainMapArray = tMapArray;
+            terrainMapSize = tMapSize;
         }
     }
 
@@ -52,6 +82,8 @@ public class TerrainInstance : MonoBehaviour
     private int instanceCountZ = 0;
     [SerializeField]
     private Vector4[] startEndUVs;
+    [SerializeField]
+    private Vector4[] alphaTexIndexs;
     [SerializeField]
     private MatData matData;
 
@@ -76,21 +108,22 @@ public class TerrainInstance : MonoBehaviour
         InstanceMgr.instance.Remove(this);
     }
 
-    public void SetMatData(Texture2D tex,float max)
+    public void SetMatData(Texture2D tex,float max,Texture2D aTex,Texture2DArray tMapArray, Vector4[] tMapSize)
     {
         if(matData == null)
         {
             matData = new MatData();
         }
-        matData.SetValue(tex, max);
+        matData.SetValue(tex, max, aTex, tMapArray, tMapSize);
     }
 
 
-    public void InitData(Mesh tempMesh,int countX,int countZ,int chunkWidth,int chunkLength,Quaternion rotation)
+    public void InitData(Mesh tempMesh,int countX,int countZ,int chunkWidth,int chunkLength,Quaternion rotation,Vector4[] tAlphaTexIndexs)
     {
         int count = countX * countZ;
         mesh = tempMesh;
         trs = new Matrix4x4[count];
+        alphaTexIndexs = tAlphaTexIndexs;
         startEndUVs = new Vector4[count];
         instanceCount = count;
         instanceCountX = countX;
@@ -156,14 +189,14 @@ public class TerrainInstance : MonoBehaviour
     void UpdateMaterial()
     {
         if (mat == null || prop == null) return;
-        if (matData.isChange)
-        {
-            mat.SetTexture("_HeightNormalTex", matData.HeightNormalTex);
-            mat.SetFloat("_MaxHeight", matData.MaxHeight);
-            matData.isChange = false;
-        }
+        mat.SetTexture("_HeightNormalTex", matData.HeightNormalTex);
+        mat.SetFloat("_MaxHeight", matData.MaxHeight);
+        mat.SetTexture("_AlphaMap", matData.AlphaMap);
+        mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
+        mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapSize);
 
         prop.SetVectorArray("_StartEndUV", startEndUVs);
+        prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexs);
         UpdateLodLevel();
         prop.SetVectorArray("_TessVertexCounts", neighborVertexCounts);
         prop.SetFloatArray("_LODTessVertexCounts", selfVertexCounts);

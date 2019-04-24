@@ -54,6 +54,7 @@ public class TerrainExport : ScriptableWizard
             chunkQuadCountZ = 1;
             isSaveCPUMesh = false;
             isSaveGPUMesh = true;
+            isChunk = true;
         }
 
         if(isSaveGPUMesh)
@@ -109,14 +110,18 @@ public class TerrainExport : ScriptableWizard
 
 
     TerrainData data = null;
-    private float[,] heights = null;
-    private Vector3[,] normals = null;
-    private int heightmapWidth = 0; //高度图宽度（单位像素）
-    private int heightmapHeight = 0;  //高度图长度（单位像素）
+    float[,] heights = null;
+    Vector3[,] normals = null;
+    int heightMapWidth = 0; //高度图宽度（单位像素）
+    int heightMapHeight = 0;  //高度图长度（单位像素）
+    int alphaMapWidth = 0; //权重图宽度（单位像素）
+    int alphaMapHeight = 0; // 权重图高度（单位像素）
     int chunkCountX = 0;  //横向块数
     int chunkCountZ = 0;  //纵向块数
-    int chunkPixelCountX = 0; //单块的对应高度图的像素数（横向）
-    int chunkPixelCountZ = 0; //单块的对应高度图的像素数（纵向）
+    int chunkHeightPixelCountX = 0; //单块对应高度图的像素数（横向）
+    int chunkHeightPixelCountZ = 0; //单块对应高度图的像素数（纵向）
+    int chunkAlphaPixelCountX = 0; //单块对应权重图的像素数（横向）
+    int chunkAlphaPixelCountZ = 0; //单块对应权重图的像素数（纵向）
     float maxHeight = 0;
     string totalPath = "";
     string assetsPath = "";
@@ -128,18 +133,21 @@ public class TerrainExport : ScriptableWizard
         data = Terrain.activeTerrain.terrainData;
         totalPath = totalPath + mapName;
         assetsPath = assetsPath + mapName;
-        if (!Directory.Exists(totalPath))
+        if (Directory.Exists(totalPath))
         {
-            Directory.CreateDirectory(totalPath);
+            DelectDir(totalPath);
         }
+        Directory.CreateDirectory(totalPath);
 
         float[,] tempHeights = data.GetHeights(0, 0, data.heightmapWidth, data.heightmapHeight);
-        heightmapWidth = data.heightmapHeight;
-        heightmapHeight = data.heightmapWidth;
-        heights = new float[heightmapWidth, heightmapHeight];
-        for (int i=0;i< heightmapHeight; i++)
+        heightMapWidth = data.heightmapHeight;
+        heightMapHeight = data.heightmapWidth;
+        alphaMapWidth = data.alphamapHeight;
+        alphaMapHeight = data.alphamapWidth;
+        heights = new float[heightMapWidth, heightMapHeight];
+        for (int i=0;i< heightMapHeight; i++)
         {
-            for(int j=0;j< heightmapWidth; j++)
+            for(int j=0;j< heightMapWidth; j++)
             {
                 heights[i, j] = tempHeights[j, i];
             }
@@ -155,8 +163,10 @@ public class TerrainExport : ScriptableWizard
         {
             chunkCountX = (int)(data.size.x / chunkWidth) + (data.size.x % chunkWidth != 0 ? 1 : 0);
             chunkCountZ = (int)(data.size.z / chunkLength) + (data.size.z % chunkLength != 0 ? 1 : 0);
-            chunkPixelCountX = (int)(heightmapWidth * chunkWidth / data.size.x) + 1;
-            chunkPixelCountZ = (int)(heightmapHeight * chunkLength / data.size.z) + 1;
+            chunkHeightPixelCountX = (int)(heightMapWidth * chunkWidth / data.size.x) + 1;
+            chunkHeightPixelCountZ = (int)(heightMapHeight * chunkLength / data.size.z) + 1;
+            chunkAlphaPixelCountX = (int)(alphaMapWidth * chunkWidth / data.size.x) + 1;
+            chunkAlphaPixelCountZ = (int)(alphaMapHeight * chunkLength / data.size.z) + 1;
 
             string chunkPath = totalPath + "/Chunks";
             if (!Directory.Exists(chunkPath))
@@ -183,9 +193,13 @@ public class TerrainExport : ScriptableWizard
         {
             chunkCountX = 1;
             chunkCountZ = 1;
-            chunkPixelCountX = heightmapWidth;
-            chunkPixelCountZ = heightmapHeight;
+            chunkHeightPixelCountX = heightMapWidth;
+            chunkHeightPixelCountZ = heightMapHeight;
+            chunkAlphaPixelCountX = alphaMapHeight;
+            chunkAlphaPixelCountZ = alphaMapWidth;
         }
+
+        SaveAlphaMap();
 
 
         if (isSaveCPUMesh)
@@ -236,14 +250,14 @@ public class TerrainExport : ScriptableWizard
 
         string imageName = mapName + "_Total_HeightNormalMap.png";
 
-        heightNormalTex = new Texture2D(data.heightmapWidth, data.heightmapHeight,TextureFormat.RGBA32, true);
+        heightNormalTex = new Texture2D(heightMapWidth, heightMapHeight,TextureFormat.RGBA32, true);
         Vector2 RG;
 
         GetNormalInfo();
 
-        for (int j = 0; j < heightmapHeight; j++)
+        for (int j = 0; j < heightMapHeight; j++)
         {
-            for (int i = 0; i < heightmapWidth; i++)
+            for (int i = 0; i < heightMapWidth; i++)
             {
                 RG = EncodeHeight(heights[i, j]);
                 heightNormalTex.SetPixel(i, j, new Color(RG.x, RG.y, normals[i,j].x, normals[i,j].z));
@@ -280,7 +294,7 @@ public class TerrainExport : ScriptableWizard
             {
                 chunkPath = path + "/Chunk_" + (j * chunkCountX + i + 1);
                 EditorUtility.DisplayProgressBar("保存块高度法线图", "保存块高度法线图:" + (j * chunkCountX + i + 1)+"/"+ chunkCountX * chunkCountZ, (float)(j * chunkCountX + i + 1)/ (chunkCountX * chunkCountZ));
-                SaveSingleChunkHeightAndNormalMap(i, j, chunkPixelCountX, chunkPixelCountZ, j * chunkCountX + i + 1, chunkPath);
+                SaveSingleChunkHeightAndNormalMap(i, j, chunkHeightPixelCountX, chunkHeightPixelCountZ, j * chunkCountX + i + 1, chunkPath);
             }
         }
 
@@ -303,10 +317,10 @@ public class TerrainExport : ScriptableWizard
         {
             for (int i = countX * pixelCountX; i <= (countX + 1) * pixelCountX ; i++)
             {
-                if (i >= heightmapWidth || j >= heightmapHeight)
+                if (i >= heightMapWidth || j >= heightMapHeight)
                 {
-                    int mini = Mathf.Min(i, heightmapWidth - 1);
-                    int minj = Mathf.Min(j, heightmapHeight - 1);
+                    int mini = Mathf.Min(i, heightMapWidth - 1);
+                    int minj = Mathf.Min(j, heightMapHeight - 1);
                     RG = EncodeHeight(heights[mini, minj]);
                     heightNormalChunkMap.SetPixel(i - countX * pixelCountX, j - countZ * pixelCountZ, new Color(RG.x, RG.y,normals[mini, minj].x, normals[mini, minj].z));
                 }
@@ -347,18 +361,18 @@ public class TerrainExport : ScriptableWizard
 
     void GetNormalInfo()
     {
-        float scaleX = data.size.x/ heightmapWidth;
-        float scaleZ = data.size.z / heightmapHeight;
+        float scaleX = data.size.x/ heightMapWidth;
+        float scaleZ = data.size.z / heightMapHeight;
 
         float up, down, left, right;
         Vector3 t, b, n;
-        for (int j = 0; j < heightmapHeight; j++)
+        for (int j = 0; j < heightMapHeight; j++)
         {
-            for (int i = 0; i < heightmapWidth; i++)
+            for (int i = 0; i < heightMapWidth; i++)
             {
-                up = j != heightmapHeight - 1?heights[i, j + 1]:heights[i,j];
+                up = j != heightMapHeight - 1?heights[i, j + 1]:heights[i,j];
                 down = j != 0 ? heights[i, j - 1] : heights[i, j];
-                right = i != heightmapWidth - 1 ? heights[i + 1, j] : heights[i, j];
+                right = i != heightMapWidth - 1 ? heights[i + 1, j] : heights[i, j];
                 left = i != 0? heights[i-1,j]: heights[i, j];
                 t = new Vector3(scaleX * 2, (right - left) * maxHeight, 0);
                 b = new Vector3(0, (up - down) * maxHeight, scaleZ * 2);
@@ -506,8 +520,8 @@ public class TerrainExport : ScriptableWizard
         int nowVertexCountX;
         int nowVertexCountZ;
         //高度图像素数和顶点数的比例
-        float PixelVertexProX = (float)heightmapWidth / (chunkQuadCountX * tempChunkCountX + 1);
-        float PixelVertexProZ = (float)heightmapHeight / (chunkQuadCountZ * tempChunkCountZ + 1);
+        float PixelVertexProX = (float)heightMapWidth / (chunkQuadCountX * tempChunkCountX + 1);
+        float PixelVertexProZ = (float)heightMapHeight / (chunkQuadCountZ * tempChunkCountZ + 1);
 
         int pixelX;
         int pixelZ;
@@ -703,6 +717,207 @@ public class TerrainExport : ScriptableWizard
 
     #endregion
 
+    #region 保存 AlphaMap
+    Vector4[] alphaWeightArray;
+    Vector4[] alphaTexIndexArray;
+    Texture2DArray terrainMapArray;
+    Vector4[] terrainMapSize;
+   void SaveAlphaMap()
+    {
+        EditorUtility.DisplayProgressBar("保存权重图", "保存权重图:0/1", 0);
+     
+        alphaWeightArray = new Vector4[alphaMapWidth * alphaMapHeight];
+        alphaTexIndexArray = new Vector4[chunkCountX * chunkCountZ];
+        GetAlphaMapInfo(ref alphaWeightArray, ref alphaTexIndexArray);
+        Vector4[] tmpAlphaTexIndexArray = new Vector4[chunkCountX * chunkCountZ];
+        for (int j = 0; j < chunkCountZ; j++)
+        {
+            for (int i = 0; i < chunkCountX; i++)
+            {
+                int chunkIndex = j * chunkCountX + i;
+                tmpAlphaTexIndexArray[chunkIndex] = alphaTexIndexArray[chunkIndex];
+            }
+        }
+
+        for (int j = 0; j < chunkCountZ; j++)
+        {
+            for (int i = 0; i < chunkCountX; i++)
+            {
+                alphaTexIndexArray[j * chunkCountX + i] = tmpAlphaTexIndexArray[i * chunkCountZ + j];
+            }
+        }
+
+
+        GetAlphaMapTextureArray();
+
+        string imageName = mapName + "_Total_AlphaMap.png";
+
+        Texture2D alphaMapTex = new Texture2D(alphaMapWidth, alphaMapHeight, TextureFormat.RGBA32, true);
+        Vector4 alphaWeight;
+        int alphaWeightIndex;
+
+        for (int j = 0; j < alphaMapHeight; j++)
+        {
+            for (int i = 0; i < alphaMapWidth; i++)
+            {
+                alphaWeightIndex = j * alphaMapWidth + i;
+                alphaWeight = alphaWeightArray[alphaWeightIndex];
+                alphaMapTex.SetPixel(j, i, new Color(alphaWeight.x, alphaWeight.y, alphaWeight.z, alphaWeight.w));
+            }
+        }
+        alphaMapTex.Apply();
+
+        byte[] rawData = alphaMapTex.EncodeToPNG();
+        File.WriteAllBytes(totalPath + "/" + imageName, rawData);
+
+        string arrayName = mapName + "_Total_AlphaMapTextures.Asset";
+        if (terrainMapArray!=null)
+        {
+            AssetDatabase.CreateAsset(terrainMapArray, assetsPath +"/"+ arrayName);
+        }
+
+        AssetDatabase.Refresh();
+
+        //设置图片导入信息
+        TextureImporter alphaMapImporter = AssetImporter.GetAtPath(assetsPath + "/" + imageName) as TextureImporter;
+        alphaMapImporter.wrapMode = TextureWrapMode.Clamp;
+        alphaMapImporter.npotScale = TextureImporterNPOTScale.None;
+        TextureImporterPlatformSettings alphaMapSetting = alphaMapImporter.GetDefaultPlatformTextureSettings();
+        alphaMapSetting.format = TextureImporterFormat.RGBA32;
+        alphaMapSetting.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
+        alphaMapSetting.maxTextureSize = 4096;
+        alphaMapImporter.SetPlatformTextureSettings(alphaMapSetting);
+        alphaMapImporter.SaveAndReimport();
+
+        EditorUtility.ClearProgressBar();
+    }
+
+    void GetAlphaMapInfo(ref Vector4[] alphaWeights,ref Vector4[] alphaTexIndexs)
+    {
+        float[,,] alphaMaps = data.GetAlphamaps(0, 0, alphaMapWidth, alphaMapHeight);
+        int alphaMapCount = alphaMaps.GetLength(2);
+        int pixelX = 0;
+        int pixelZ = 0;
+        int chunkIndex = 0;
+        int weightIndex = 0;
+        int alphaTexIndex = 0;
+        float weight = 0;
+        int alphaTexIndexKey = 0;
+        Vector4 alphaTex;
+        Vector4 alphaWeight;
+        for (int j = 0; j < chunkCountZ; j++)
+        {
+            for (int i = 0; i < chunkCountX; i++)
+            {
+                chunkIndex = j * chunkCountX + i;
+                alphaTex = Vector4.zero;
+                alphaTexIndex = 0;
+                for (int z = 0; z <= chunkAlphaPixelCountZ; z++)
+                {
+                    for (int x = 0; x <= chunkAlphaPixelCountX; x++)
+                    {
+                        pixelX = Mathf.Min(i * chunkAlphaPixelCountX + x, alphaMapWidth - 1);
+                        pixelZ = Mathf.Min(j * chunkAlphaPixelCountZ + z, alphaMapHeight - 1);
+                        weightIndex = pixelZ * alphaMapWidth + pixelX;
+                        alphaWeight = Vector4.zero ;
+                        for (int k = 1; k < alphaMapCount + 1; k++)
+                        {
+                            weight = alphaMaps[pixelX, pixelZ, k - 1];
+                            if (weight > 0)
+                            {
+                                alphaTexIndexKey = GetVectorKey(alphaTex, k);
+                                //还未加入
+                                if (alphaTexIndexKey == -1)
+                                {
+                                    SetVector4(ref alphaTex, alphaTexIndex, k);
+                                    alphaTexIndexKey = alphaTexIndex;
+                                    alphaTexIndex++;
+                                }
+
+                                if (alphaTexIndexKey != -1)
+                                {
+                                    SetVector4(ref alphaWeight, alphaTexIndexKey, weight);
+                                }
+
+                            }
+                        }
+                        //alphaWeight = new Vector4(alphaMaps[pixelX, pixelZ, 0], alphaMaps[pixelX, pixelZ, 1], alphaMaps[pixelX, pixelZ, 2], alphaMaps[pixelX, pixelZ, 3]);
+                        alphaWeights[weightIndex] = alphaWeight;
+                    }
+                }
+                //alphaTex = new Vector4(1, 2, 3, 4);
+                alphaTexIndexs[chunkIndex] = alphaTex - Vector4.one;
+            }
+        }
+    }
+
+    void GetAlphaMapTextureArray()
+    {
+        if (data.terrainLayers.Length<1)
+        {
+            return;
+        }
+
+        terrainMapSize = new Vector4[data.terrainLayers.Length];
+
+        Texture2D alphaMapTexture = data.terrainLayers[0].diffuseTexture;
+        terrainMapArray = new Texture2DArray(alphaMapTexture.width, alphaMapTexture.height, data.terrainLayers.Length, alphaMapTexture.format, false);
+        for (int i=0;i < data.terrainLayers.Length; i++)
+        {
+            terrainMapArray.SetPixels(data.terrainLayers[i].diffuseTexture.GetPixels(), i,0);
+            terrainMapSize[i] = new Vector4(data.terrainLayers[i].tileSize.x, data.terrainLayers[i].tileSize.y,
+                data.terrainLayers[i].tileOffset.x, data.terrainLayers[i].tileOffset.y);
+        }
+
+
+        
+    }
+
+    void SetVector4(ref Vector4 target,int index,float value)
+    {
+        if(index == 0)
+        {
+            target.x = value;
+        }
+        else if(index == 1)
+        {
+            target.y = value;
+        }
+        else if(index == 2)
+        {
+            target.z = value;
+        }
+        else if(index == 3)
+        {
+            target.w = value;
+        }
+    }
+
+    int GetVectorKey(Vector4 target,float value)
+    {
+        int result = -1;
+        if(target.x == value)
+        {
+            result = 0;
+        }
+        else if(target.y == value)
+        {
+            result = 1;
+        }
+        else if (target.z == value)
+        {
+            result = 2;
+        }
+        else if (target.w == value)
+        {
+            result = 3;
+        }
+        return result;
+    }
+
+
+    #endregion
+
     #region Instance 相关
     void SaveInstancePrefab()
     {
@@ -711,16 +926,18 @@ public class TerrainExport : ScriptableWizard
         TerrainInstance terrainInstance = prefab.AddComponent<TerrainInstance>();
         string meshName = mapName + "_Chunk_Mesh.asset";
         Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
-        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation);
+        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation,alphaTexIndexArray);
 
         string path = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
-        Texture2D tex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
-        terrainInstance.SetMatData(tex, data.size.y);
-        //Material mat = terrainInstance.Mat;
-        //MaterialPropertyBlock prop = terrainInstance.Prop;
-        //UpdateProp(prop);
-        //UpdateMat(mat);
-        //UpdateTRS(terrainInstance);
+        Texture2D hnTex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
+        path = assetsPath + "/" + mapName + "_Total_AlphaMap.png";
+        Texture2D aTex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
+        path = assetsPath + "/" + mapName + "_Total_AlphaMapTextures.Asset";
+        Texture2DArray tMapArray = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2DArray)) as Texture2DArray;
+
+        terrainInstance.SetMatData(hnTex, data.size.y,aTex, tMapArray,terrainMapSize);
+
+
         string prefabName = mapName + "_Instance.prefab";
         PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, assetsPath + "/" + prefabName,InteractionMode.AutomatedAction);
         //GameObject.DestroyImmediate(prefab);
@@ -768,5 +985,29 @@ public class TerrainExport : ScriptableWizard
 
     #endregion
 
+    public void DelectDir(string srcPath)
+    {
+        try
+        {
+            DirectoryInfo dir = new DirectoryInfo(srcPath);
+            FileSystemInfo[] fileinfo = dir.GetFileSystemInfos();  //返回目录中所有文件和子目录
+            foreach (FileSystemInfo i in fileinfo)
+            {
+                if (i is DirectoryInfo)            //判断是否文件夹
+                {
+                    DirectoryInfo subdir = new DirectoryInfo(i.FullName);
+                    subdir.Delete(true);          //删除子目录和文件
+                }
+                else
+                {
+                    File.Delete(i.FullName);      //删除指定文件
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            throw;
+        }
+    }
 
 }

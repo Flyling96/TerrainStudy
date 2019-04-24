@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &8736141795639959550
+--- !u!1 &6639330985546422735
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,8 +8,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2950746650104816855}
-  - component: {fileID: 6634575918753461302}
+  - component: {fileID: 5952984886330254003}
+  - component: {fileID: 9168062488949529867}
   m_Layer: 0
   m_Name: map004_Instance
   m_TagString: Untagged
@@ -17,13 +17,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2950746650104816855
+--- !u!4 &5952984886330254003
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8736141795639959550}
+  m_GameObject: {fileID: 6639330985546422735}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -31,13 +31,13 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6634575918753461302
+--- !u!114 &9168062488949529867
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8736141795639959550}
+  m_GameObject: {fileID: 6639330985546422735}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 12c4d2ca0410d7d4fb3653f6b4d3349f, type: 3}
@@ -660,7 +660,51 @@ MonoBehaviour:
   - {x: 0.5, y: 0.8333333, z: 0.6666667, w: 1}
   - {x: 0.6666667, y: 0.8333333, z: 0.8333333, w: 1}
   - {x: 0.8333333, y: 0.8333333, z: 1, w: 1}
+  alphaTexIndexs:
+  - {x: 0, y: 2, z: -1, w: -1}
+  - {x: 0, y: 2, z: 3, w: -1}
+  - {x: 0, y: 3, z: -1, w: -1}
+  - {x: 0, y: 3, z: 1, w: -1}
+  - {x: 1, y: 3, z: -1, w: -1}
+  - {x: 1, y: 3, z: -1, w: -1}
+  - {x: 0, y: 2, z: -1, w: -1}
+  - {x: 0, y: 2, z: 3, w: -1}
+  - {x: 3, y: 2, z: -1, w: -1}
+  - {x: 3, y: 1, z: 0, w: -1}
+  - {x: 3, y: 2, z: 4, w: -1}
+  - {x: 3, y: 2, z: 4, w: 1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: 2, z: -1, w: -1}
+  - {x: 2, y: 0, z: 1, w: 3}
+  - {x: 3, y: 2, z: 1, w: 0}
+  - {x: 3, y: 4, z: 2, w: -1}
+  - {x: 2, y: 4, z: 0, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: 1, z: -1, w: -1}
+  - {x: 1, y: 0, z: 4, w: -1}
+  - {x: 4, y: 0, z: -1, w: -1}
+  - {x: 4, y: 0, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
+  - {x: 0, y: -1, z: -1, w: -1}
   matData:
     heightNormalTex: {fileID: 2800000, guid: e7314be85fe90d0438180f017cc812eb, type: 3}
+    alphaMap: {fileID: 2800000, guid: 54631e437f49acf4fab7f03e57ec7f24, type: 3}
+    terrainMapArray: {fileID: 18700000, guid: 578c4d9d729e66a418bae6c0e17ef9c8, type: 2}
+    terrainMapSize:
+    - {x: 10, y: 10, z: 0, w: 0}
+    - {x: 10, y: 10, z: 0, w: 0}
+    - {x: 2, y: 2, z: 0, w: 0}
+    - {x: 10, y: 10, z: 0, w: 0}
+    - {x: 2, y: 2, z: 0, w: 0}
     maxHeight: 600
-    isChange: 1
