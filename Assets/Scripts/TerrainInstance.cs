@@ -11,15 +11,17 @@ public class TerrainInstance : MonoBehaviour
     class MatData
     {
         [SerializeField]
-        Texture2D heightNormalTex;
+        Texture2D heightNormalTex;      //高度法线图
+        [SerializeField]    
+        Texture2D alphaMap;             //权重图
         [SerializeField]
-        Texture2D alphaMap;
+        Texture2DArray terrainMapArray; //地形贴图数组
         [SerializeField]
-        Texture2DArray terrainMapArray;
+        Vector4[] terrainMapTiling;     //地形贴图的 Tiling Size 和 Offset
         [SerializeField]
-        Vector4[] terrainMapSize;
+        float maxHeight;                //地形的最大高度
         [SerializeField]
-        float maxHeight;
+        Vector4 chunkPixelCount;        //每个地形块对应高度图的横向、纵向的像素数（zw为权重图）
 
         public Texture2D HeightNormalTex
         {
@@ -53,21 +55,30 @@ public class TerrainInstance : MonoBehaviour
             }
         }
 
-        public Vector4[] TerrainMapSize
+        public Vector4[] TerrainMapTiling
         {
             get
             {
-                return terrainMapSize;
+                return terrainMapTiling;
             }
         }
 
-        public void SetValue(Texture2D hnTex, float max, Texture2D aTex,Texture2DArray tMapArray,Vector4[] tMapSize)
+        public Vector4 ChunkPixelCount
+        {
+            get
+            {
+                return chunkPixelCount;
+            }
+        }
+
+        public void SetValue(Texture2D hnTex, float max, Texture2D aTex,Texture2DArray tMapArray,Vector4[] tMapSize,Vector4 cPixelCount)
         {
             heightNormalTex = hnTex;
             maxHeight = max;
             alphaMap = aTex;
             terrainMapArray = tMapArray;
-            terrainMapSize = tMapSize;
+            terrainMapTiling = tMapSize;
+            chunkPixelCount = cPixelCount;
         }
     }
 
@@ -108,13 +119,13 @@ public class TerrainInstance : MonoBehaviour
         InstanceMgr.instance.Remove(this);
     }
 
-    public void SetMatData(Texture2D tex,float max,Texture2D aTex,Texture2DArray tMapArray, Vector4[] tMapSize)
+    public void SetMatData(Texture2D tex,float max,Texture2D aTex,Texture2DArray tMapArray, Vector4[] tMapSize, Vector4 cPixelCount)
     {
         if(matData == null)
         {
             matData = new MatData();
         }
-        matData.SetValue(tex, max, aTex, tMapArray, tMapSize);
+        matData.SetValue(tex, max, aTex, tMapArray, tMapSize, cPixelCount);
     }
 
 
@@ -193,7 +204,8 @@ public class TerrainInstance : MonoBehaviour
         mat.SetFloat("_MaxHeight", matData.MaxHeight);
         mat.SetTexture("_AlphaMap", matData.AlphaMap);
         mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
-        mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapSize);
+        mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
+        mat.SetVector("_ChunkPixelCount", matData.ChunkPixelCount);
 
         prop.SetVectorArray("_StartEndUV", startEndUVs);
         prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexs);

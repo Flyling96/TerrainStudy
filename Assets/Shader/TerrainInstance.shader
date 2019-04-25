@@ -54,6 +54,7 @@
 				float _MaxHeight;
 				sampler2D _AlphaMap;
 				uniform float4 _TerrainMapSize[30];
+				uniform float4 _ChunkPixelCount;
 				UNITY_DECLARE_TEX2DARRAY(_TerrainMapArray);
 
 #ifdef UNITY_INSTANCING_ENABLED
@@ -157,13 +158,21 @@
 #else
 					float4 startEndUV = _StartEndUV;
 #endif
-					float2 realUV;
-					realUV.x = lerp(startEndUV.x, startEndUV.z, o.uv.x);
-					realUV.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
+					float2 heightUV;
+					heightUV.x = lerp(startEndUV.x, startEndUV.z, o.uv.x);
+					heightUV.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
 
-					o.uv = realUV;
 
-					float2 heightTex = tex2Dlod(_HeightNormalTex, float4(o.uv.x, o.uv.y, 0, 0)).rg;
+					float2 alphaLimit = float2(0.5f / _ChunkPixelCount.z, 0.5f / _ChunkPixelCount.w);
+					o.uv.x = o.uv.x * step(alphaLimit.x, o.uv.x) + alphaLimit.x * (1 - step(alphaLimit.x, o.uv.x));
+					o.uv.x = o.uv.x * step(o.uv.x,1-alphaLimit.x) + (1-alphaLimit.x) * (1 - step(o.uv.x, 1 - alphaLimit.x));
+					o.uv.y = o.uv.y * step(alphaLimit.y, o.uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, o.uv.y));
+					o.uv.y = o.uv.y * step(o.uv.y, 1 - alphaLimit.y) + (1 - alphaLimit.y) * (1 - step(o.uv.y, 1 - alphaLimit.y));
+
+					o.uv.x = lerp(startEndUV.x, startEndUV.z, o.uv.x);
+					o.uv.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
+
+					float2 heightTex = tex2Dlod(_HeightNormalTex, float4(heightUV.x, heightUV.y, 0, 0)).rg;
 					float height = DecodeHeight(heightTex) * _MaxHeight;
 					o.vertex.y = height;
 
@@ -185,9 +194,9 @@
 				{
 					float4 weight = tex2D(_AlphaMap, uv);
 					float4 color = UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.x), alphaTexIndexs.x)) * weight.x * step(0, alphaTexIndexs.x)+
-						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.y), alphaTexIndexs.y)) * weight.y * step(0, alphaTexIndexs.y) +
-						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.z), alphaTexIndexs.z)) * weight.z * step(0, alphaTexIndexs.z) +
-						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.w), alphaTexIndexs.w)) * weight.w * step(0, alphaTexIndexs.w);
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.y), alphaTexIndexs.y)) * weight.y +
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.z), alphaTexIndexs.z)) * weight.z +
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.w), alphaTexIndexs.w)) * weight.w ;
 
 					return color;
 				}

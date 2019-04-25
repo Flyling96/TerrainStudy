@@ -753,6 +753,8 @@ public class TerrainExport : ScriptableWizard
         string imageName = mapName + "_Total_AlphaMap.png";
 
         Texture2D alphaMapTex = new Texture2D(alphaMapWidth, alphaMapHeight, TextureFormat.RGBA32, true);
+        //权重图采用双线性滤波
+        alphaMapTex.filterMode = FilterMode.Bilinear;
         Vector4 alphaWeight;
         int alphaWeightIndex;
 
@@ -812,9 +814,9 @@ public class TerrainExport : ScriptableWizard
                 chunkIndex = j * chunkCountX + i;
                 alphaTex = Vector4.zero;
                 alphaTexIndex = 0;
-                for (int z = 0; z <= chunkAlphaPixelCountZ; z++)
+                for (int z = 0; z < chunkAlphaPixelCountZ; z++)
                 {
-                    for (int x = 0; x <= chunkAlphaPixelCountX; x++)
+                    for (int x = 0; x < chunkAlphaPixelCountX; x++)
                     {
                         pixelX = Mathf.Min(i * chunkAlphaPixelCountX + x, alphaMapWidth - 1);
                         pixelZ = Mathf.Min(j * chunkAlphaPixelCountZ + z, alphaMapHeight - 1);
@@ -935,7 +937,9 @@ public class TerrainExport : ScriptableWizard
         path = assetsPath + "/" + mapName + "_Total_AlphaMapTextures.Asset";
         Texture2DArray tMapArray = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2DArray)) as Texture2DArray;
 
-        terrainInstance.SetMatData(hnTex, data.size.y,aTex, tMapArray,terrainMapSize);
+        Vector4 chunkPixelCount = new Vector4(chunkHeightPixelCountX, chunkHeightPixelCountZ, chunkAlphaPixelCountX, chunkAlphaPixelCountZ);
+
+        terrainInstance.SetMatData(hnTex, data.size.y,aTex, tMapArray,terrainMapSize, chunkPixelCount);
 
 
         string prefabName = mapName + "_Instance.prefab";
