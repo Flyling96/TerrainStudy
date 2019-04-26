@@ -94,6 +94,8 @@ public class TerrainInstance : MonoBehaviour
     [SerializeField]
     private Vector4[] startEndUVs;
     [SerializeField]
+    private Vector2[] chunkMinAndMaxHeights;
+    [SerializeField]
     private Vector4[] alphaTexIndexs;
     [SerializeField]
     private MatData matData;
@@ -105,10 +107,11 @@ public class TerrainInstance : MonoBehaviour
     private Material mat;
     string shaderName = "Unlit/TerrainInstance";
 
+
     private void OnEnable()
     {
         InstanceMgr.instance.Register(this);
-        if(mat == null)
+        if (mat == null)
         {
             Init();
         }
@@ -129,13 +132,14 @@ public class TerrainInstance : MonoBehaviour
     }
 
 
-    public void InitData(Mesh tempMesh,int countX,int countZ,int chunkWidth,int chunkLength,Quaternion rotation,Vector4[] tAlphaTexIndexs)
+    public void InitData(Mesh tempMesh,int countX,int countZ,int chunkWidth,int chunkLength,Quaternion rotation,Vector4[] tAlphaTexIndexs,Vector2[] tMinAndMaxHeight)
     {
         int count = countX * countZ;
         mesh = tempMesh;
         trs = new Matrix4x4[count];
         alphaTexIndexs = tAlphaTexIndexs;
         startEndUVs = new Vector4[count];
+        chunkMinAndMaxHeights = tMinAndMaxHeight;
         instanceCount = count;
         instanceCountX = countX;
         instanceCountZ = countZ;
@@ -177,17 +181,37 @@ public class TerrainInstance : MonoBehaviour
         isInit = true;
         instanceCount = instanceCountX * instanceCountZ;
         prop = new MaterialPropertyBlock();
+
         mat = new Material(Shader.Find(shaderName));
+        mat.enableInstancing = true;
+        InitMat();
+
         tempTrs = new Matrix4x4[instanceCount];
         if(trs!=null)
         {
             tempTrs = trs.Clone() as Matrix4x4[];
         }
+
         lodLevels = new float[instanceCount];
         selfVertexCounts = new float[instanceCount];
         neighborVertexCounts = new Vector4[instanceCount];
-        mat.enableInstancing = true;
         sourcePos = transform.position;
+    }
+
+    void InitMat()
+    {
+        if (mat == null || matData == null) return;
+        for(int i=0;i<instanceCount;i++)
+        {
+            chunkMinAndMaxHeights[i] *= matData.MaxHeight;
+        }
+        mat.SetTexture("_HeightNormalTex", matData.HeightNormalTex);
+        mat.SetFloat("_MaxHeight", matData.MaxHeight);
+        mat.SetTexture("_AlphaMap", matData.AlphaMap);
+        mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
+        mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
+        mat.SetVector("_ChunkPixelCount", matData.ChunkPixelCount);
+        mat.SetVector("_MapSize", new Vector4(matData.HeightNormalTex.width, matData.HeightNormalTex.height, matData.AlphaMap.width, matData.AlphaMap.height));
     }
 
 
@@ -197,16 +221,12 @@ public class TerrainInstance : MonoBehaviour
         trs[index] = matr;
     }
 
-    void UpdateMaterial()
+    void UpdateMatProp()
     {
-        if (mat == null || prop == null) return;
-        mat.SetTexture("_HeightNormalTex", matData.HeightNormalTex);
-        mat.SetFloat("_MaxHeight", matData.MaxHeight);
-        mat.SetTexture("_AlphaMap", matData.AlphaMap);
-        mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
-        mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
-        mat.SetVector("_ChunkPixelCount", matData.ChunkPixelCount);
-
+        if(prop == null)
+        {
+            return;
+        }
         prop.SetVectorArray("_StartEndUV", startEndUVs);
         prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexs);
         UpdateLodLevel();
@@ -220,7 +240,7 @@ public class TerrainInstance : MonoBehaviour
         for(int i=0;i<instanceCount;i++)
         {
             instancePos = new Vector3(trs[i].m03, trs[i].m13, trs[i].m23);
-            lodLevels[i] = CaculateLodLevel(instancePos);
+            lodLevels[i] = CaculateLodLevel(instancePos,chunkMinAndMaxHeights[i]);
             selfVertexCounts[i] = CacuTessCount(lodLevels[i]);
         }
 
@@ -245,24 +265,27 @@ public class TerrainInstance : MonoBehaviour
 
     }
 
-    int CaculateLodLevel(Vector3 instancePos)
+    int CaculateLodLevel(Vector3 instancePos,Vector2 chunkMinAndMaxHeight)
     {
+        float height = Mathf.Abs(chunkMinAndMaxHeight.y - chunkMinAndMaxHeight.x);
         float distance = Vector3.Distance(instancePos, InstanceMgr.instance.mainCamera.transform.position);
         int lodLevel = 1;
 
-        if(distance < 30)
+        float power = distance * 0.2f + 600/(height+1) * 2.0f;
+
+        if (power < 30)
         {
             lodLevel = 1;
         }
-        else if(distance < 100)
+        else if(power < 100)
         {
             lodLevel = 2;
         }
-        else if(distance < 300)
+        else if(power < 300)
         {
             lodLevel = 3;
         }
-        else if(distance < 1000)
+        else if(power < 1000)
         {
             lodLevel = 4;
         }
@@ -309,7 +332,7 @@ public class TerrainInstance : MonoBehaviour
         }
         sourcePos = transform.position;
 
-        UpdateMaterial();
+        UpdateMatProp();
 
         Graphics.DrawMeshInstanced(mesh, 0, mat, tempTrs, instanceCount, prop);  
 

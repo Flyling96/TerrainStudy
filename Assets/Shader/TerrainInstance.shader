@@ -55,6 +55,7 @@
 				sampler2D _AlphaMap;
 				uniform float4 _TerrainMapSize[30];
 				uniform float4 _ChunkPixelCount;
+				uniform float4 _MapSize;
 				UNITY_DECLARE_TEX2DARRAY(_TerrainMapArray);
 
 #ifdef UNITY_INSTANCING_ENABLED
@@ -163,7 +164,7 @@
 					heightUV.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
 
 
-					float2 alphaLimit = float2(0.5f / _ChunkPixelCount.z, 0.5f / _ChunkPixelCount.w);
+					float2 alphaLimit = float2(2.0f / _ChunkPixelCount.z, 2.0f / _ChunkPixelCount.w);
 					o.uv.x = o.uv.x * step(alphaLimit.x, o.uv.x) + alphaLimit.x * (1 - step(alphaLimit.x, o.uv.x));
 					o.uv.x = o.uv.x * step(o.uv.x,1-alphaLimit.x) + (1-alphaLimit.x) * (1 - step(o.uv.x, 1 - alphaLimit.x));
 					o.uv.y = o.uv.y * step(alphaLimit.y, o.uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, o.uv.y));
@@ -183,9 +184,9 @@
 
 				float2 GetRealUV(float2 uv, float index)
 				{
-					uv.x *= 1024.0f /_TerrainMapSize[index].x;
+					uv.x *= _MapSize.z/_TerrainMapSize[index].x;
 					uv.x += _TerrainMapSize[index].z;
-					uv.y *= 1024.0f / _TerrainMapSize[index].y;
+					uv.y *= _MapSize.w/ _TerrainMapSize[index].y;
 					uv.y += _TerrainMapSize[index].w;
 					return uv;
 				}

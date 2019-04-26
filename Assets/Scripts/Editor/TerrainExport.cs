@@ -111,6 +111,7 @@ public class TerrainExport : ScriptableWizard
 
     TerrainData data = null;
     float[,] heights = null;
+    Vector2[] chunkMinAndMaxHeight = null;
     Vector3[,] normals = null;
     int heightMapWidth = 0; //高度图宽度（单位像素）
     int heightMapHeight = 0;  //高度图长度（单位像素）
@@ -144,12 +145,41 @@ public class TerrainExport : ScriptableWizard
         heightMapHeight = data.heightmapWidth;
         alphaMapWidth = data.alphamapHeight;
         alphaMapHeight = data.alphamapWidth;
+
+        if (isChunk)
+        {
+            chunkCountX = (int)(data.size.x / chunkWidth) + (data.size.x % chunkWidth != 0 ? 1 : 0);
+            chunkCountZ = (int)(data.size.z / chunkLength) + (data.size.z % chunkLength != 0 ? 1 : 0);
+            chunkHeightPixelCountX = (int)(heightMapWidth * chunkWidth / data.size.x) + 1;
+            chunkHeightPixelCountZ = (int)(heightMapHeight * chunkLength / data.size.z) + 1;
+            chunkAlphaPixelCountX = (int)(alphaMapWidth * chunkWidth / data.size.x) + 1;
+            chunkAlphaPixelCountZ = (int)(alphaMapHeight * chunkLength / data.size.z) + 1;
+        }
+        else
+        {
+            chunkCountX = 1;
+            chunkCountZ = 1;
+            chunkHeightPixelCountX = heightMapWidth;
+            chunkHeightPixelCountZ = heightMapHeight;
+            chunkAlphaPixelCountX = alphaMapHeight;
+            chunkAlphaPixelCountZ = alphaMapWidth;
+        }
+
         heights = new float[heightMapWidth, heightMapHeight];
+        chunkMinAndMaxHeight = new Vector2[chunkCountX * chunkCountZ];
+        for (int j = 0; j < chunkCountZ; j++)
+        {
+            for (int i = 0; i < chunkCountX; i++)
+            {
+                chunkMinAndMaxHeight[j * chunkCountX + i] = new Vector2(1, 0);
+            }
+        }
         for (int i=0;i< heightMapHeight; i++)
         {
             for(int j=0;j< heightMapWidth; j++)
             {
                 heights[i, j] = tempHeights[j, i];
+                GetChunkMinAndMaxHeight(heights[i, j], i, j);
             }
         }
 
@@ -161,13 +191,6 @@ public class TerrainExport : ScriptableWizard
 
         if (isChunk)
         {
-            chunkCountX = (int)(data.size.x / chunkWidth) + (data.size.x % chunkWidth != 0 ? 1 : 0);
-            chunkCountZ = (int)(data.size.z / chunkLength) + (data.size.z % chunkLength != 0 ? 1 : 0);
-            chunkHeightPixelCountX = (int)(heightMapWidth * chunkWidth / data.size.x) + 1;
-            chunkHeightPixelCountZ = (int)(heightMapHeight * chunkLength / data.size.z) + 1;
-            chunkAlphaPixelCountX = (int)(alphaMapWidth * chunkWidth / data.size.x) + 1;
-            chunkAlphaPixelCountZ = (int)(alphaMapHeight * chunkLength / data.size.z) + 1;
-
             string chunkPath = totalPath + "/Chunks";
             if (!Directory.Exists(chunkPath))
             {
@@ -188,15 +211,6 @@ public class TerrainExport : ScriptableWizard
             {
                 SaveChunkHeightMesh(assetsPath + "/Chunks");
             }
-        }
-        else
-        {
-            chunkCountX = 1;
-            chunkCountZ = 1;
-            chunkHeightPixelCountX = heightMapWidth;
-            chunkHeightPixelCountZ = heightMapHeight;
-            chunkAlphaPixelCountX = alphaMapHeight;
-            chunkAlphaPixelCountZ = alphaMapWidth;
         }
 
         SaveAlphaMap();
@@ -219,9 +233,57 @@ public class TerrainExport : ScriptableWizard
 
         if(isGPUInstance)
         {
+            GetChunkMinAndMaxHeight();
             SaveInstancePrefab();
         }
 
+    }
+
+    #region 保存 HeightNormalTex
+    Texture2D heightNormalTex = null;
+
+    void GetChunkMinAndMaxHeight(float height,int i,int j)
+    {
+        int chunkX = i / chunkHeightPixelCountX;
+        int chunkZ = j / chunkHeightPixelCountZ;
+        int chunkIndex = chunkZ * chunkCountX + chunkX;
+        if (height < chunkMinAndMaxHeight[chunkIndex].x)
+        {
+            chunkMinAndMaxHeight[chunkIndex].x = height;
+        }
+        else if (height > chunkMinAndMaxHeight[chunkIndex].y)
+        {
+            chunkMinAndMaxHeight[chunkIndex].y = height;
+        }
+    }
+
+    void GetChunkMinAndMaxHeight()
+    {
+        chunkMinAndMaxHeight = new Vector2[chunkCountX * chunkCountZ];
+        for (int j = 0; j < chunkCountZ; j++)
+        {
+            for (int i = 0; i < chunkCountX; i++)
+            {
+                int chunkIndex = j * chunkCountX + i;
+                chunkMinAndMaxHeight[chunkIndex] = new Vector2(1, 0);
+                for(int z = j* chunkHeightPixelCountZ;z<=(j+1)* chunkHeightPixelCountZ;z++)
+                {
+                    for(int x = i * chunkHeightPixelCountX;x<=(i+1) * chunkHeightPixelCountX; x++)
+                    {
+                        int minx = Mathf.Min(x, heightMapWidth - 1);
+                        int minz = Mathf.Min(z, heightMapHeight - 1);
+                        if(heights[minx, minz] < chunkMinAndMaxHeight[chunkIndex].x)
+                        {
+                            chunkMinAndMaxHeight[chunkIndex].x = heights[minx, minz];
+                        }
+                        else if(heights[minx,minz] > chunkMinAndMaxHeight[chunkIndex].y)
+                        {
+                            chunkMinAndMaxHeight[chunkIndex].y = heights[minx, minz];
+                        }
+                    }
+                }
+            }
+        }
     }
 
     Vector2 EncodeHeight(float height)
@@ -241,9 +303,6 @@ public class TerrainExport : ScriptableWizard
         return result;
     }
 
-    Texture2D heightNormalTex = null;
-
-    #region 保存 HeightNormalTex
     void SaveHeightNormalMap()
     {
         EditorUtility.DisplayProgressBar("保存高度法线图", "保存高度法线图:0/1", 0);
@@ -928,7 +987,7 @@ public class TerrainExport : ScriptableWizard
         TerrainInstance terrainInstance = prefab.AddComponent<TerrainInstance>();
         string meshName = mapName + "_Chunk_Mesh.asset";
         Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
-        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation,alphaTexIndexArray);
+        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation,alphaTexIndexArray,chunkMinAndMaxHeight);
 
         string path = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
         Texture2D hnTex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
@@ -948,44 +1007,6 @@ public class TerrainExport : ScriptableWizard
         //prefab = null;
 
     }
-
-    //void UpdateProp(MaterialPropertyBlock prop)
-    //{
-    //    Vector4[] startEndUVs = new Vector4[chunkCountZ * chunkCountX];
-    //    int index = 0;
-    //    for (int j = 0; j < chunkCountZ; j++)
-    //    {
-    //        for(int i = 0; i < chunkCountX; i++)
-    //        {
-    //            index = j * chunkCountX + i;
-    //            startEndUVs[index] = (new Vector4((float)i / chunkCountX, (float)j / chunkCountZ, (float)(i + 1) / chunkCountX, (float)(j + 1) / chunkCountZ));
-    //        }
-    //    }
-    //    prop.SetVectorArray("_StartEndUV", startEndUVs);
-    //}
-
-    //void UpdateMat(Material mat)
-    //{
-    //    mat.SetTexture("_HeightNormalTex", heightNormalTex);
-    //    mat.SetFloat("_MaxHeight", data.size.y);
-    //}
-
-    //void UpdateTRS(TerrainInstance terrainInstance)
-    //{
-    //    Matrix4x4 matr;
-    //    int index = 0;
-    //    for (int j = 0; j < chunkCountZ; j++)
-    //    {
-    //        for (int i = 0; i < chunkCountX; i++)
-    //        {
-    //            index = j * chunkCountX + i;
-    //            matr = new Matrix4x4();
-    //            matr.SetTRS(new Vector3(i * chunkWidth, 0, j * chunkLength),
-    //                terrainInstance.transform.rotation, Vector3.one);
-    //            terrainInstance.AddTRS(matr,index);
-    //        }
-    //    }
-    //}
 
     #endregion
 
