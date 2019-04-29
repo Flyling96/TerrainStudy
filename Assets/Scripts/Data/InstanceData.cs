@@ -7,6 +7,4 @@ public class InstanceData : ScriptableObject
     public MaterialPropertyBlock prop;
     public Material mat;
     public Matrix4x4[] trs;
-
-
 }

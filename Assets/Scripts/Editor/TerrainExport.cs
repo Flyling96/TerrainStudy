@@ -780,6 +780,7 @@ public class TerrainExport : ScriptableWizard
     Vector4[] alphaWeightArray;
     Vector4[] alphaTexIndexArray;
     Texture2DArray terrainMapArray;
+    Texture2D[] terrainTexArray;
     Vector4[] terrainMapSize;
    void SaveAlphaMap()
     {
@@ -920,11 +921,14 @@ public class TerrainExport : ScriptableWizard
         }
 
         terrainMapSize = new Vector4[data.terrainLayers.Length];
+        terrainTexArray = new Texture2D[data.terrainLayers.Length];
 
         Texture2D alphaMapTexture = data.terrainLayers[0].diffuseTexture;
         terrainMapArray = new Texture2DArray(alphaMapTexture.width, alphaMapTexture.height, data.terrainLayers.Length, alphaMapTexture.format, false);
         for (int i=0;i < data.terrainLayers.Length; i++)
         {
+            terrainTexArray[i] = new Texture2D(alphaMapTexture.width, alphaMapTexture.height, alphaMapTexture.format, false);
+            terrainTexArray[i].SetPixels(data.terrainLayers[i].diffuseTexture.GetPixels());
             terrainMapArray.SetPixels(data.terrainLayers[i].diffuseTexture.GetPixels(), i,0);
             terrainMapSize[i] = new Vector4(data.terrainLayers[i].tileSize.x, data.terrainLayers[i].tileSize.y,
                 data.terrainLayers[i].tileOffset.x, data.terrainLayers[i].tileOffset.y);
@@ -998,8 +1002,7 @@ public class TerrainExport : ScriptableWizard
 
         Vector4 chunkPixelCount = new Vector4(chunkHeightPixelCountX, chunkHeightPixelCountZ, chunkAlphaPixelCountX, chunkAlphaPixelCountZ);
 
-        terrainInstance.SetMatData(hnTex, data.size.y,aTex, tMapArray,terrainMapSize, chunkPixelCount);
-
+        terrainInstance.SetMatData(hnTex, data.size.y,aTex, tMapArray, terrainTexArray,terrainMapSize, chunkPixelCount);
 
         string prefabName = mapName + "_Instance.prefab";
         PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, assetsPath + "/" + prefabName,InteractionMode.AutomatedAction);
