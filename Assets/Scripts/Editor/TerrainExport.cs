@@ -989,9 +989,6 @@ public class TerrainExport : ScriptableWizard
         GameObject prefab = new GameObject();
         prefab.name = mapName + "_Instance";
         TerrainInstance terrainInstance = prefab.AddComponent<TerrainInstance>();
-        string meshName = mapName + "_Chunk_Mesh.asset";
-        Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
-        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation,alphaTexIndexArray,chunkMinAndMaxHeight);
 
         string path = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
         Texture2D hnTex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
@@ -1002,10 +999,15 @@ public class TerrainExport : ScriptableWizard
 
         Vector4 chunkPixelCount = new Vector4(chunkHeightPixelCountX, chunkHeightPixelCountZ, chunkAlphaPixelCountX, chunkAlphaPixelCountZ);
 
-        terrainInstance.SetMatData(hnTex, data.size.y,aTex, tMapArray, terrainTexArray,terrainMapSize, chunkPixelCount);
+        terrainInstance.SetMatData(hnTex, data.size.y, aTex, tMapArray, terrainTexArray, terrainMapSize, chunkPixelCount);
+
+        string meshName = mapName + "_Chunk_Mesh.asset";
+        Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
+        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation,alphaTexIndexArray,chunkMinAndMaxHeight);
 
         string prefabName = mapName + "_Instance.prefab";
         PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, assetsPath + "/" + prefabName,InteractionMode.AutomatedAction);
+        terrainInstance.Init();
         //GameObject.DestroyImmediate(prefab);
         //prefab = null;
 

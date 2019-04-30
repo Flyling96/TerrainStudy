@@ -93,23 +93,22 @@ public class TerrainInstance : MonoBehaviour
         }
     }
 
-
     [SerializeField]
     private Mesh mesh;
-    [SerializeField]
-    private Matrix4x4[] trs;
     [SerializeField]
     private int instanceCountX = 0;
     [SerializeField]
     private int instanceCountZ = 0;
-    [SerializeField]
-    private Vector4[] startEndUVs;
-    [SerializeField]
-    private Vector2[] chunkMinAndMaxHeights;
-    [SerializeField]
-    private Vector4[] alphaTexIndexs;
+    //[SerializeField]
+    //private Vector4[] startEndUVs;
+    //[SerializeField]
+    //private Vector2[] chunkMinAndMaxHeights;
+    //[SerializeField]
+    //private Vector4[] alphaTexIndexs;
     [SerializeField]
     private MatData matData;
+    [SerializeField]
+    private InstanceChunk[] instanceChunks;
 
     int instanceCount = 0;
     Matrix4x4[] tempTrs;
@@ -149,91 +148,79 @@ public class TerrainInstance : MonoBehaviour
     public void InitData(Mesh tempMesh,int countX,int countZ,int chunkWidth,int chunkLength,Quaternion rotation,Vector4[] tAlphaTexIndexs,Vector2[] tMinAndMaxHeight)
     {
         int count = countX * countZ;
-        mesh = tempMesh;
-        trs = new Matrix4x4[count];
-        alphaTexIndexs = tAlphaTexIndexs;
-        startEndUVs = new Vector4[count];
-        chunkMinAndMaxHeights = tMinAndMaxHeight;
         instanceCount = count;
         instanceCountX = countX;
         instanceCountZ = countZ;
+        mesh = tempMesh;
+        //alphaTexIndexs = tAlphaTexIndexs;
+        //startEndUVs = new Vector4[count];
+        //chunkMinAndMaxHeights = tMinAndMaxHeight;
+        instanceChunks = new InstanceChunk[instanceCount];
 
         int index = 0;
-        for (int j = 0; j < countZ; j++)
-        {
-            for (int i = 0; i < countX; i++)
-            {
-                index = j * countX + i;
-                startEndUVs[index] = (new Vector4((float)i / countX, (float)j / countZ, (float)(i + 1) / countX, (float)(j + 1) / countZ));
-            }
-        }
-
         Matrix4x4 matr;
-        index = 0;
+        Vector3 chunkPos;
         for (int j = 0; j < countZ; j++)
         {
             for (int i = 0; i < countX; i++)
             {
                 index = j * countX + i;
+                instanceChunks[index] = new GameObject(transform.name + "_chunk" + index).AddComponent<InstanceChunk>();
+                instanceChunks[index].startEndUV = (new Vector4((float)i / countX, (float)j / countZ, (float)(i + 1) / countX, (float)(j + 1) / countZ));
+                instanceChunks[index].alphaTexIndex = tAlphaTexIndexs[index];
+                instanceChunks[index].minAndMaxHeight = tMinAndMaxHeight[index];
                 matr = new Matrix4x4();
-                matr.SetTRS(new Vector3(i * chunkWidth, 0, j * chunkLength),
-                    rotation, Vector3.one);
-                AddTRS(matr, index);
+                chunkPos = transform.position + new Vector3(i * chunkWidth, 0, j * chunkLength);
+                matr.SetTRS(chunkPos,rotation, Vector3.one);
+                instanceChunks[index].trsMatrix = matr;
+                instanceChunks[index].transform.position = chunkPos;
+                instanceChunks[index].transform.rotation = rotation;
+                instanceChunks[index].transform.SetParent(transform);
             }
         }
 
-        Init();
+        for (int j = 0; j < countZ; j++)
+        {
+            for (int i = 0; i < countX; i++)
+            {
+                index = j * countX + i;
+                instanceChunks[index].neighborChunk = new InstanceChunk[4];
+                instanceChunks[index].neighborChunk[0] = (j == countZ - 1) ? null : instanceChunks[(j + 1) * countX + i];//上
+                instanceChunks[index].neighborChunk[0] = (j == 0) ? null : instanceChunks[(j - 1) * countX + i];//下
+                instanceChunks[index].neighborChunk[0] = (i == 0) ? null : instanceChunks[j * countX + i - 1];//左
+                instanceChunks[index].neighborChunk[0] = (i == countX - 1) ? null : instanceChunks[j * countX + i + 1];//右
+            }
+        }
+
     }
 
-    float[] lodLevels;
     float[] selfVertexCounts;
     Vector4[] neighborVertexCounts;
     bool isInit = false;
 
-    void Init()
+    public void Init()
     {
         isInit = true;
         instanceCount = instanceCountX * instanceCountZ;
         prop = new MaterialPropertyBlock();
 
-        mat = new Material(Shader.Find(shaderName));
-        mat.enableInstancing = true;
         InitMat();
 
-        tempTrs = new Matrix4x4[instanceCount];
-        chunkPoints = new Vector3[instanceCount, 4];
-        if (trs!=null)
-        {
-            tempTrs = trs.Clone() as Matrix4x4[];
-        }
-
-        if(instanceCountZ>1)
-        {
-            chunkDis = new Vector3(trs[instanceCountX + 1].m03 - trs[0].m03,
-                0, trs[instanceCountX + 1].m23 - trs[0].m23);
-        }
-        else
-        {
-            chunkDis = new Vector3(trs[1].m03 - trs[0].m03, 0, 0);
-        }
-
-
-        lodLevels = new float[instanceCount];
-        selfVertexCounts = new float[instanceCount];
-        neighborVertexCounts = new Vector4[instanceCount];
         sourcePos = transform.position;
-
-
 
     }
 
     void InitMat()
     {
-        if (mat == null || matData == null) return;
+        mat = new Material(Shader.Find(shaderName));
+        mat.enableInstancing = true;
+
+        if (matData == null) return;
         for(int i=0;i<instanceCount;i++)
         {
-            chunkMinAndMaxHeights[i] *= matData.MaxHeight;
+            instanceChunks[i].minAndMaxHeight *= matData.MaxHeight;
         }
+
         mat.SetTexture("_HeightNormalTex", matData.HeightNormalTex);
         mat.SetFloat("_MaxHeight", matData.MaxHeight);
         mat.SetTexture("_AlphaMap", matData.AlphaMap);
@@ -241,12 +228,6 @@ public class TerrainInstance : MonoBehaviour
         mat.SetVector("_MapSize", new Vector4(matData.HeightNormalTex.width, matData.HeightNormalTex.height, matData.AlphaMap.width, matData.AlphaMap.height));
     }
 
-
-    void AddTRS(Matrix4x4 matr,int index)
-    {
-        if (index >= trs.Length) return;
-        trs[index] = matr;
-    }
 
     void UpdateMatProp()
     {
@@ -257,11 +238,6 @@ public class TerrainInstance : MonoBehaviour
 
         mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
         mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
-
-        //prop.SetVectorArray("_StartEndUV", startEndUVs);
-        //prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexs);
-        //prop.SetVectorArray("_TessVertexCounts", neighborVertexCounts);
-        //prop.SetFloatArray("_LODTessVertexCounts", selfVertexCounts);
 
         //if (matData != null)
         //{
@@ -280,9 +256,9 @@ public class TerrainInstance : MonoBehaviour
         Vector3 instancePos;
         for(int i=0;i<instanceCount;i++)
         {
-            instancePos = new Vector3(tempTrs[i].m03, tempTrs[i].m13, tempTrs[i].m23);
-            lodLevels[i] = CaculateLodLevel(instancePos,chunkMinAndMaxHeights[i]);
-            selfVertexCounts[i] = CacuTessCount(lodLevels[i]);
+            instancePos = instanceChunks[i].transform.position;
+            float lodLevel = CaculateLodLevel(instancePos, instanceChunks[i].minAndMaxHeight);
+            instanceChunks[i].selfVertexCount = CacuTessCount(lodLevel);
         }
 
     }
@@ -351,7 +327,7 @@ public class TerrainInstance : MonoBehaviour
         ViewOcclusion();
         UpdateMatProp();
 
-        Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.ToArray(), instanceIndexInViewList.Count, prop);  
+        Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.ToArray(), showChunkCount, prop);  
 
     }
 
@@ -359,21 +335,27 @@ public class TerrainInstance : MonoBehaviour
     {
         Vector3 tempPos;
         //位移
-        for (int i = 0; i < tempTrs.Length; i++)
+        if (transform.position != sourcePos)
         {
-            tempTrs[i].m03 += (transform.position.x - sourcePos.x);
-            tempTrs[i].m13 += (transform.position.y - sourcePos.y);
-            tempTrs[i].m23 += (transform.position.z - sourcePos.z);
+            for (int i = 0; i < instanceCount; i++)
+            {
+                tempPos = new Vector3(instanceChunks[i].trsMatrix.m03, instanceChunks[i].trsMatrix.m13, instanceChunks[i].trsMatrix.m23);
+                tempPos += transform.position - sourcePos;
+                instanceChunks[i].ChangePos(tempPos);
+                //tempTrs[i].m03 += (transform.position.x - sourcePos.x);
+                //tempTrs[i].m13 += (transform.position.y - sourcePos.y);
+                //tempTrs[i].m23 += (transform.position.z - sourcePos.z);
 
-            tempPos = new Vector3(tempTrs[i].m03, tempTrs[i].m13, tempTrs[i].m23);
+                //tempPos = new Vector3(tempTrs[i].m03, tempTrs[i].m13, tempTrs[i].m23);
 
-            chunkPoints[i, 0] = tempPos +  new Vector3(-chunkDis.x * 0.5f ,0,-chunkDis.z * 0.5f);
-            chunkPoints[i, 1] = tempPos + new Vector3(-chunkDis.x * 0.5f, 0,chunkDis.z * 0.5f);
-            chunkPoints[i, 2] = tempPos + new Vector3(chunkDis.x * 0.5f, 0,chunkDis.z * 0.5f);
-            chunkPoints[i, 3] = tempPos + new Vector3(chunkDis.x * 0.5f, 0,-chunkDis.z * 0.5f);
+                //chunkPoints[i, 0] = tempPos + new Vector3(-chunkDis.x * 0.5f, 0, -chunkDis.z * 0.5f);
+                //chunkPoints[i, 1] = tempPos + new Vector3(-chunkDis.x * 0.5f, 0, chunkDis.z * 0.5f);
+                //chunkPoints[i, 2] = tempPos + new Vector3(chunkDis.x * 0.5f, 0, chunkDis.z * 0.5f);
+                //chunkPoints[i, 3] = tempPos + new Vector3(chunkDis.x * 0.5f, 0, -chunkDis.z * 0.5f);
+            }
+
+            sourcePos = transform.position;
         }
-
-        sourcePos = transform.position;
 
         //y轴相关旋转
         //Vector3 angle = transform.eulerAngles;
@@ -384,8 +366,6 @@ public class TerrainInstance : MonoBehaviour
         //    tempTrs[i].m20 = Mathf.Sin(angle.y * Mathf.Deg2Rad);
         //    tempTrs[i].m22 = Mathf.Cos(angle.y * Mathf.Deg2Rad);
         //}
-
-
     }
 
     //剔除相关List
@@ -397,80 +377,96 @@ public class TerrainInstance : MonoBehaviour
     List<Vector4> terrainMapTilingList = new List<Vector4>();
     List<int> instanceIndexInViewList = new List<int>();
     List<Matrix4x4> trsList = new List<Matrix4x4>();
+    int showChunkCount = 0;
 
     //cpu剔除块
     void ViewOcclusion()
     {
-        instanceIndexInViewList.Clear();
-        for(int i =0;i<chunkPoints.GetLength(0);i++)
-        {
-            if (InstanceMgr.instance.IsInView(chunkPoints[i, 0], chunkPoints[i, 1], chunkPoints[i, 2], chunkPoints[i, 3]))
-            {
-                instanceIndexInViewList.Add(i);
-            }
-        }
+        //instanceIndexInViewList.Clear();
+        //for(int i =0;i<chunkPoints.GetLength(0);i++)
+        //{
+        //    if (InstanceMgr.instance.IsInView(chunkPoints[i, 0], chunkPoints[i, 1], chunkPoints[i, 2], chunkPoints[i, 3]))
+        //    {
+        //        instanceIndexInViewList.Add(i);
+        //    }
+        //}
 
-        //确定剔除块之后再计算周围块的lod等级
-        Vector4 neighborVertex;//上下左右
-        for (int j = 0; j < instanceCountZ; j++)
-        {
-            for (int i = 0; i < instanceCountX; i++)
-            {
-                int instanceIndex = j * instanceCountX + i;
-                neighborVertex = new Vector4();
-                neighborVertex.x = (j == instanceCountZ - 1 || !instanceIndexInViewList.Contains((j + 1) * instanceCountX + i)) 
-                    ? selfVertexCounts[instanceIndex] : selfVertexCounts[(j + 1) * instanceCountX + i];//上
-                neighborVertex.y = (j == 0 || !instanceIndexInViewList.Contains((j - 1) * instanceCountX + i))
-                    ? selfVertexCounts[instanceIndex] : selfVertexCounts[(j - 1) * instanceCountX + i];//下
-                neighborVertex.z = (i == 0 || !instanceIndexInViewList.Contains(j * instanceCountX + i - 1)) 
-                    ? selfVertexCounts[instanceIndex] : selfVertexCounts[j * instanceCountX + i - 1];//左
-                neighborVertex.w = (i == instanceCountX - 1 || !instanceIndexInViewList.Contains(j * instanceCountX + i + 1)) 
-                    ? selfVertexCounts[instanceIndex] : selfVertexCounts[j * instanceCountX + i + 1];//右
-                //以小的为准，防止接缝
-                neighborVertex.x = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.x);
-                neighborVertex.y = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.y);
-                neighborVertex.z = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.z);
-                neighborVertex.w = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.w);
-                neighborVertexCounts[j * instanceCountX + i] = neighborVertex;
-            }
-        }
+        ////确定剔除块之后再计算周围块的lod等级
+        //Vector4 neighborVertex;//上下左右
+        //for (int j = 0; j < instanceCountZ; j++)
+        //{
+        //    for (int i = 0; i < instanceCountX; i++)
+        //    {
+        //        int instanceIndex = j * instanceCountX + i;
+        //        neighborVertex = new Vector4();
+        //        neighborVertex.x = (j == instanceCountZ - 1 || !instanceIndexInViewList.Contains((j + 1) * instanceCountX + i)) 
+        //            ? selfVertexCounts[instanceIndex] : selfVertexCounts[(j + 1) * instanceCountX + i];//上
+        //        neighborVertex.y = (j == 0 || !instanceIndexInViewList.Contains((j - 1) * instanceCountX + i))
+        //            ? selfVertexCounts[instanceIndex] : selfVertexCounts[(j - 1) * instanceCountX + i];//下
+        //        neighborVertex.z = (i == 0 || !instanceIndexInViewList.Contains(j * instanceCountX + i - 1)) 
+        //            ? selfVertexCounts[instanceIndex] : selfVertexCounts[j * instanceCountX + i - 1];//左
+        //        neighborVertex.w = (i == instanceCountX - 1 || !instanceIndexInViewList.Contains(j * instanceCountX + i + 1)) 
+        //            ? selfVertexCounts[instanceIndex] : selfVertexCounts[j * instanceCountX + i + 1];//右
+        //        //以小的为准，防止接缝
+        //        neighborVertex.x = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.x);
+        //        neighborVertex.y = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.y);
+        //        neighborVertex.z = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.z);
+        //        neighborVertex.w = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.w);
+        //        neighborVertexCounts[j * instanceCountX + i] = neighborVertex;
+        //    }
+        //}
 
         startEndUVList.Clear();
         alphaTexIndexList.Clear();
         selfVertexCountList.Clear();
         neighborVertexCountList.Clear();
         trsList.Clear();
+        showChunkCount = 0;
 
         List<float> useAlphaTexIndexList = new List<float>();
 
-        for (int i=0;i<instanceCount;i++)
+        for(int i=0;i<instanceCount; i++)
         {
-            if(instanceIndexInViewList.Contains(i))
+            if (instanceChunks[i].isShow)
             {
-                startEndUVList.Add(startEndUVs[i]);
-                neighborVertexCountList.Add(neighborVertexCounts[i]);
-                selfVertexCountList.Add(selfVertexCounts[i]);
-                alphaTexIndexList.Add(alphaTexIndexs[i]);
-                trsList.Add(tempTrs[i]);
-                if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].x))
-                {
-                    useAlphaTexIndexList.Add(alphaTexIndexs[i].x);
-                }
-                if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].y))
-                {
-                    useAlphaTexIndexList.Add(alphaTexIndexs[i].y);
-                }
-                if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].z))
-                {
-                    useAlphaTexIndexList.Add(alphaTexIndexs[i].z);
-                }
-                if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].w))
-                {
-                    useAlphaTexIndexList.Add(alphaTexIndexs[i].w);
-                }
-
+                showChunkCount++;
+                instanceChunks[i].CaculateNeighborVertexCount();
+                startEndUVList.Add(instanceChunks[i].startEndUV);
+                alphaTexIndexList.Add(instanceChunks[i].alphaTexIndex);
+                selfVertexCountList.Add(instanceChunks[i].selfVertexCount);
+                neighborVertexCountList.Add(instanceChunks[i].neighborVertexCount);
+                trsList.Add(instanceChunks[i].trsMatrix);
             }
         }
+
+        //for (int i=0;i<instanceCount;i++)
+        //{
+        //    if(instanceIndexInViewList.Contains(i))
+        //    {
+        //        startEndUVList.Add(startEndUVs[i]);
+        //        neighborVertexCountList.Add(neighborVertexCounts[i]);
+        //        selfVertexCountList.Add(selfVertexCounts[i]);
+        //        alphaTexIndexList.Add(alphaTexIndexs[i]);
+        //        trsList.Add(tempTrs[i]);
+        //        if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].x))
+        //        {
+        //            useAlphaTexIndexList.Add(alphaTexIndexs[i].x);
+        //        }
+        //        if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].y))
+        //        {
+        //            useAlphaTexIndexList.Add(alphaTexIndexs[i].y);
+        //        }
+        //        if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].z))
+        //        {
+        //            useAlphaTexIndexList.Add(alphaTexIndexs[i].z);
+        //        }
+        //        if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].w))
+        //        {
+        //            useAlphaTexIndexList.Add(alphaTexIndexs[i].w);
+        //        }
+
+        //    }
+        //}
 
         return;
 
