@@ -1,10 +1,17 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 [ExecuteInEditMode]
 public class InstanceMgr : Singleton<InstanceMgr>
 {
+    public struct AABoundingBox
+    {
+        public Vector3 min;
+        public Vector3 max;
+    }
+
     List<TerrainInstance> terrainInstanceList = new List<TerrainInstance>();
     public Camera mainCamera;
 
@@ -42,6 +49,9 @@ public class InstanceMgr : Singleton<InstanceMgr>
         }
     }
 
+
+    #region 视锥体裁剪相关
+    //视口检测相关
     /// <summary>
     /// 四边形块是否在视口内
     /// </summary>
@@ -189,5 +199,47 @@ public class InstanceMgr : Singleton<InstanceMgr>
     {
         return v0.x * v1.y - v1.x * v0.y;
     }
+
+    //视锥检测相关
+    public bool IsBoundInCamera(AABoundingBox aabb, Camera camera)
+    {
+        if(camera == null)
+        {
+            return false;
+        }
+
+        Matrix4x4 matrix = camera.projectionMatrix * camera.worldToCameraMatrix;
+        int mask = Convert.ToInt32("FF", 16);
+
+        Vector4 worldPos;
+        for(int i=0;i<8;i++)
+        {
+            worldPos = new Vector4(((i & 0x01) == 0 ? aabb.min : aabb.max).x,
+                ((i & 0x02) == 0 ? aabb.min : aabb.max).y,
+                ((i & 0x04) == 0 ? aabb.min : aabb.max).z,1);
+
+            mask &= ComputeProjectionMask(worldPos, matrix);
+        }
+
+        //存在AABB八个顶点在一个视锥体面之外
+        if (mask != 0) return false;
+
+        return true;
+
+    }
+
+    int ComputeProjectionMask(Vector4 pos, Matrix4x4 projection)
+    {
+        pos = projection * pos;
+        int mask = 0;
+        if (pos.x < -pos.w) mask |= 0x01;
+        if (pos.x > pos.w) mask |= 0x02;
+        if (pos.y < -pos.w) mask |= 0x04;
+        if (pos.y > pos.w) mask |= 0x08;
+        if (pos.z < -pos.w) mask |= 0x10;
+        if (pos.z > pos.w) mask |= 0x20;
+        return mask;
+    }
+    #endregion
 
 }

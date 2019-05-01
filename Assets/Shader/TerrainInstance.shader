@@ -195,9 +195,9 @@
 				{
 					float4 weight = tex2D(_AlphaMap, uv);
 					float4 color = UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.x), alphaTexIndexs.x)) * weight.x * step(0, alphaTexIndexs.x)+
-						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.y), alphaTexIndexs.y)) * weight.y +
-						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.z), alphaTexIndexs.z)) * weight.z +
-						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.w), alphaTexIndexs.w)) * weight.w ;
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.y), alphaTexIndexs.y)) * weight.y * step(0, alphaTexIndexs.y) +
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.z), alphaTexIndexs.z)) * weight.z * step(0, alphaTexIndexs.z) +
+						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.w), alphaTexIndexs.w)) * weight.w * step(0, alphaTexIndexs.w);
 
 					return color;
 				}

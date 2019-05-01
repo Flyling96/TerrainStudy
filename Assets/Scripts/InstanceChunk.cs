@@ -13,7 +13,17 @@ public class InstanceChunk : MonoBehaviour
     public Vector4 neighborVertexCount; //邻居一条边顶点数
     public InstanceChunk[] neighborChunk; //上下左右的块
 
+    public Vector2 chunkSize;
+
     public bool isShow = true;
+
+    public void CacuIsBoundInCamera()
+    {
+        InstanceMgr.AABoundingBox aabb = new InstanceMgr.AABoundingBox();
+        aabb.min = new Vector3(transform.position.x, minAndMaxHeight.x, transform.position.z);
+        aabb.max = new Vector3(transform.position.x + chunkSize.x, minAndMaxHeight.y, transform.position.z + chunkSize.y);
+        isShow = InstanceMgr.instance.IsBoundInCamera(aabb, InstanceMgr.instance.mainCamera);
+    }
 
     public void ChangePos(Vector3 newPos)
     {

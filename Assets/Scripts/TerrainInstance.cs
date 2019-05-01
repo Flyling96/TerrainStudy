@@ -99,12 +99,6 @@ public class TerrainInstance : MonoBehaviour
     private int instanceCountX = 0;
     [SerializeField]
     private int instanceCountZ = 0;
-    //[SerializeField]
-    //private Vector4[] startEndUVs;
-    //[SerializeField]
-    //private Vector2[] chunkMinAndMaxHeights;
-    //[SerializeField]
-    //private Vector4[] alphaTexIndexs;
     [SerializeField]
     private MatData matData;
     [SerializeField]
@@ -168,10 +162,11 @@ public class TerrainInstance : MonoBehaviour
                 instanceChunks[index] = new GameObject(transform.name + "_chunk" + index).AddComponent<InstanceChunk>();
                 instanceChunks[index].startEndUV = (new Vector4((float)i / countX, (float)j / countZ, (float)(i + 1) / countX, (float)(j + 1) / countZ));
                 instanceChunks[index].alphaTexIndex = tAlphaTexIndexs[index];
-                instanceChunks[index].minAndMaxHeight = tMinAndMaxHeight[index];
+                instanceChunks[index].minAndMaxHeight = tMinAndMaxHeight[index] * matData.MaxHeight;
                 matr = new Matrix4x4();
                 chunkPos = transform.position + new Vector3(i * chunkWidth, 0, j * chunkLength);
                 matr.SetTRS(chunkPos,rotation, Vector3.one);
+                instanceChunks[index].chunkSize = new Vector2(chunkWidth, chunkLength);
                 instanceChunks[index].trsMatrix = matr;
                 instanceChunks[index].transform.position = chunkPos;
                 instanceChunks[index].transform.rotation = rotation;
@@ -216,10 +211,10 @@ public class TerrainInstance : MonoBehaviour
         mat.enableInstancing = true;
 
         if (matData == null) return;
-        for(int i=0;i<instanceCount;i++)
-        {
-            instanceChunks[i].minAndMaxHeight *= matData.MaxHeight;
-        }
+        //for(int i=0;i<instanceCount;i++)
+        //{
+        //    instanceChunks[i].minAndMaxHeight *= matData.MaxHeight;
+        //}
 
         mat.SetTexture("_HeightNormalTex", matData.HeightNormalTex);
         mat.SetFloat("_MaxHeight", matData.MaxHeight);
@@ -236,19 +231,21 @@ public class TerrainInstance : MonoBehaviour
             return;
         }
 
-        mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
-        mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
 
-        //if (matData != null)
-        //{
-        //    mat.SetTexture("_TerrainMapArray", terrainMapArray);
-        //    mat.SetVectorArray("_TerrainMapSize", terrainMapTilingList.ToArray());
-        //}
+        //mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
+        //mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
+
+        if (matData != null)
+        {
+            mat.SetTexture("_TerrainMapArray", terrainMapArray);
+            mat.SetVectorArray("_TerrainMapSize", terrainMapTilingList.ToArray());
+        }
 
         prop.SetVectorArray("_StartEndUV", startEndUVList.ToArray());
         prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.ToArray());
         prop.SetVectorArray("_TessVertexCounts", neighborVertexCountList.ToArray());
         prop.SetFloatArray("_LODTessVertexCounts", selfVertexCountList.ToArray());
+
     }
 
     void UpdateLodLevel()
@@ -325,6 +322,12 @@ public class TerrainInstance : MonoBehaviour
         UpdateTRS();
         UpdateLodLevel();
         ViewOcclusion();
+
+        if(showChunkCount < 1)
+        {
+            return;
+        }
+
         UpdateMatProp();
 
         Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.ToArray(), showChunkCount, prop);  
@@ -342,30 +345,9 @@ public class TerrainInstance : MonoBehaviour
                 tempPos = new Vector3(instanceChunks[i].trsMatrix.m03, instanceChunks[i].trsMatrix.m13, instanceChunks[i].trsMatrix.m23);
                 tempPos += transform.position - sourcePos;
                 instanceChunks[i].ChangePos(tempPos);
-                //tempTrs[i].m03 += (transform.position.x - sourcePos.x);
-                //tempTrs[i].m13 += (transform.position.y - sourcePos.y);
-                //tempTrs[i].m23 += (transform.position.z - sourcePos.z);
-
-                //tempPos = new Vector3(tempTrs[i].m03, tempTrs[i].m13, tempTrs[i].m23);
-
-                //chunkPoints[i, 0] = tempPos + new Vector3(-chunkDis.x * 0.5f, 0, -chunkDis.z * 0.5f);
-                //chunkPoints[i, 1] = tempPos + new Vector3(-chunkDis.x * 0.5f, 0, chunkDis.z * 0.5f);
-                //chunkPoints[i, 2] = tempPos + new Vector3(chunkDis.x * 0.5f, 0, chunkDis.z * 0.5f);
-                //chunkPoints[i, 3] = tempPos + new Vector3(chunkDis.x * 0.5f, 0, -chunkDis.z * 0.5f);
             }
-
             sourcePos = transform.position;
         }
-
-        //y轴相关旋转
-        //Vector3 angle = transform.eulerAngles;
-        //for (int i = 0; i < tempTrs.Length; i++)
-        //{
-        //    tempTrs[i].m00 = Mathf.Cos(angle.y * Mathf.Deg2Rad);
-        //    tempTrs[i].m02 = -Mathf.Sin(angle.y * Mathf.Deg2Rad);
-        //    tempTrs[i].m20 = Mathf.Sin(angle.y * Mathf.Deg2Rad);
-        //    tempTrs[i].m22 = Mathf.Cos(angle.y * Mathf.Deg2Rad);
-        //}
     }
 
     //剔除相关List
@@ -375,47 +357,13 @@ public class TerrainInstance : MonoBehaviour
     List<float> selfVertexCountList = new List<float>();
     Texture2DArray terrainMapArray;
     List<Vector4> terrainMapTilingList = new List<Vector4>();
-    List<int> instanceIndexInViewList = new List<int>();
     List<Matrix4x4> trsList = new List<Matrix4x4>();
+    List<float> useAlphaTexIndexList = new List<float>();
     int showChunkCount = 0;
 
     //cpu剔除块
     void ViewOcclusion()
     {
-        //instanceIndexInViewList.Clear();
-        //for(int i =0;i<chunkPoints.GetLength(0);i++)
-        //{
-        //    if (InstanceMgr.instance.IsInView(chunkPoints[i, 0], chunkPoints[i, 1], chunkPoints[i, 2], chunkPoints[i, 3]))
-        //    {
-        //        instanceIndexInViewList.Add(i);
-        //    }
-        //}
-
-        ////确定剔除块之后再计算周围块的lod等级
-        //Vector4 neighborVertex;//上下左右
-        //for (int j = 0; j < instanceCountZ; j++)
-        //{
-        //    for (int i = 0; i < instanceCountX; i++)
-        //    {
-        //        int instanceIndex = j * instanceCountX + i;
-        //        neighborVertex = new Vector4();
-        //        neighborVertex.x = (j == instanceCountZ - 1 || !instanceIndexInViewList.Contains((j + 1) * instanceCountX + i)) 
-        //            ? selfVertexCounts[instanceIndex] : selfVertexCounts[(j + 1) * instanceCountX + i];//上
-        //        neighborVertex.y = (j == 0 || !instanceIndexInViewList.Contains((j - 1) * instanceCountX + i))
-        //            ? selfVertexCounts[instanceIndex] : selfVertexCounts[(j - 1) * instanceCountX + i];//下
-        //        neighborVertex.z = (i == 0 || !instanceIndexInViewList.Contains(j * instanceCountX + i - 1)) 
-        //            ? selfVertexCounts[instanceIndex] : selfVertexCounts[j * instanceCountX + i - 1];//左
-        //        neighborVertex.w = (i == instanceCountX - 1 || !instanceIndexInViewList.Contains(j * instanceCountX + i + 1)) 
-        //            ? selfVertexCounts[instanceIndex] : selfVertexCounts[j * instanceCountX + i + 1];//右
-        //        //以小的为准，防止接缝
-        //        neighborVertex.x = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.x);
-        //        neighborVertex.y = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.y);
-        //        neighborVertex.z = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.z);
-        //        neighborVertex.w = Mathf.Min(selfVertexCounts[instanceIndex], neighborVertex.w);
-        //        neighborVertexCounts[j * instanceCountX + i] = neighborVertex;
-        //    }
-        //}
-
         startEndUVList.Clear();
         alphaTexIndexList.Clear();
         selfVertexCountList.Clear();
@@ -423,66 +371,103 @@ public class TerrainInstance : MonoBehaviour
         trsList.Clear();
         showChunkCount = 0;
 
-        List<float> useAlphaTexIndexList = new List<float>();
+        List<float> tempUseAlphaTexIndexList = new List<float>();
 
         for(int i=0;i<instanceCount; i++)
         {
+            instanceChunks[i].CacuIsBoundInCamera();
             if (instanceChunks[i].isShow)
             {
                 showChunkCount++;
                 instanceChunks[i].CaculateNeighborVertexCount();
                 startEndUVList.Add(instanceChunks[i].startEndUV);
-                alphaTexIndexList.Add(instanceChunks[i].alphaTexIndex);
                 selfVertexCountList.Add(instanceChunks[i].selfVertexCount);
                 neighborVertexCountList.Add(instanceChunks[i].neighborVertexCount);
                 trsList.Add(instanceChunks[i].trsMatrix);
+
+                if (instanceChunks[i].alphaTexIndex.x != -1 && !tempUseAlphaTexIndexList.Contains(instanceChunks[i].alphaTexIndex.x))
+                {
+                    tempUseAlphaTexIndexList.Add(instanceChunks[i].alphaTexIndex.x);
+                }
+                if (instanceChunks[i].alphaTexIndex.y != -1 && !tempUseAlphaTexIndexList.Contains(instanceChunks[i].alphaTexIndex.y))
+                {
+                    tempUseAlphaTexIndexList.Add(instanceChunks[i].alphaTexIndex.y);
+                }
+                if (instanceChunks[i].alphaTexIndex.z != -1 && !tempUseAlphaTexIndexList.Contains(instanceChunks[i].alphaTexIndex.z))
+                {
+                    tempUseAlphaTexIndexList.Add(instanceChunks[i].alphaTexIndex.z);
+                }
+                if (instanceChunks[i].alphaTexIndex.w != -1 && !tempUseAlphaTexIndexList.Contains(instanceChunks[i].alphaTexIndex.w))
+                {
+                    tempUseAlphaTexIndexList.Add(instanceChunks[i].alphaTexIndex.w);
+                }
+
             }
         }
 
-        //for (int i=0;i<instanceCount;i++)
-        //{
-        //    if(instanceIndexInViewList.Contains(i))
-        //    {
-        //        startEndUVList.Add(startEndUVs[i]);
-        //        neighborVertexCountList.Add(neighborVertexCounts[i]);
-        //        selfVertexCountList.Add(selfVertexCounts[i]);
-        //        alphaTexIndexList.Add(alphaTexIndexs[i]);
-        //        trsList.Add(tempTrs[i]);
-        //        if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].x))
-        //        {
-        //            useAlphaTexIndexList.Add(alphaTexIndexs[i].x);
-        //        }
-        //        if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].y))
-        //        {
-        //            useAlphaTexIndexList.Add(alphaTexIndexs[i].y);
-        //        }
-        //        if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].z))
-        //        {
-        //            useAlphaTexIndexList.Add(alphaTexIndexs[i].z);
-        //        }
-        //        if (!useAlphaTexIndexList.Contains(alphaTexIndexs[i].w))
-        //        {
-        //            useAlphaTexIndexList.Add(alphaTexIndexs[i].w);
-        //        }
+        tempUseAlphaTexIndexList.Remove(-1);
 
-        //    }
-        //}
+        bool isNeedChangeTexArray = false;
 
-        return;
-
-        if (matData != null && matData.TerrainTexArray.Length>0)
+        if(useAlphaTexIndexList.Count != tempUseAlphaTexIndexList.Count)
         {
-            Texture2D terrainTex = matData.TerrainTexArray[0];
-            terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, useAlphaTexIndexList.Count, terrainTex.format, false);
-            terrainMapTilingList = new List<Vector4>();
-            for(int i=0;i< matData.TerrainTexArray.Length;i++)
+            isNeedChangeTexArray = true;
+        }
+        else
+        {
+            for(int i=0;i<tempUseAlphaTexIndexList.Count;i++)
             {
-                if (useAlphaTexIndexList.Contains(i))
+                if(!useAlphaTexIndexList.Contains(tempUseAlphaTexIndexList[i]))
                 {
-                    terrainMapArray.SetPixels(matData.TerrainTexArray[i].GetPixels(), useAlphaTexIndexList.IndexOf(i));
-                    terrainMapTilingList.Add(matData.TerrainMapTiling[i]);
+                    isNeedChangeTexArray = true;
+                    break;
                 }
             }
+        }
+
+        for (int i = 0; i < instanceCount; i++)
+        {
+            if (instanceChunks[i].isShow)
+            {
+                if (!isNeedChangeTexArray)
+                {
+                    alphaTexIndexList.Add(new Vector4(useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.x),
+                    useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.y),
+                    useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.z),
+                    useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.w)));
+                }
+                else
+                {
+                    alphaTexIndexList.Add(new Vector4(tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.x),
+                    tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.y),
+                    tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.z),
+                    tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.w)));
+                }
+            }
+        }
+
+
+
+        if (isNeedChangeTexArray && matData != null && matData.TerrainTexArray.Length > 0)
+        {
+            Texture2D terrainTex = matData.TerrainTexArray[0];
+            terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, tempUseAlphaTexIndexList.Count, terrainTex.format, false);
+            terrainMapTilingList = new List<Vector4>();
+
+            for(int i=0;i<tempUseAlphaTexIndexList.Count;i++)
+            {
+                int index = (int)tempUseAlphaTexIndexList[i];
+                if(index > matData.TerrainTexArray.Length - 1)
+                {
+                    continue;
+                }
+
+                terrainMapArray.SetPixels(matData.TerrainTexArray[index].GetPixels(), i);
+                terrainMapTilingList.Add(matData.TerrainMapTiling[index]);
+            }
+            terrainMapArray.Apply();
+
+            useAlphaTexIndexList = tempUseAlphaTexIndexList;
         }
 
     }

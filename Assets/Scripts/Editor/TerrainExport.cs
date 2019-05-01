@@ -644,8 +644,6 @@ public class TerrainExport : ScriptableWizard
         string matName = "";
         string ttotalPath = "";
         Texture2D heightNormalTex;
-        TextureImporter heightNormalTexImporter;
-        TextureImporterPlatformSettings heightNormalTexSetting;
         for (int j = 0; j < chunkCountZ; j++)
         {
             for (int i = 0; i < chunkCountX; i++)
@@ -927,8 +925,7 @@ public class TerrainExport : ScriptableWizard
         terrainMapArray = new Texture2DArray(alphaMapTexture.width, alphaMapTexture.height, data.terrainLayers.Length, alphaMapTexture.format, false);
         for (int i=0;i < data.terrainLayers.Length; i++)
         {
-            terrainTexArray[i] = new Texture2D(alphaMapTexture.width, alphaMapTexture.height, alphaMapTexture.format, false);
-            terrainTexArray[i].SetPixels(data.terrainLayers[i].diffuseTexture.GetPixels());
+            terrainTexArray[i] = data.terrainLayers[i].diffuseTexture;
             terrainMapArray.SetPixels(data.terrainLayers[i].diffuseTexture.GetPixels(), i,0);
             terrainMapSize[i] = new Vector4(data.terrainLayers[i].tileSize.x, data.terrainLayers[i].tileSize.y,
                 data.terrainLayers[i].tileOffset.x, data.terrainLayers[i].tileOffset.y);
@@ -1036,6 +1033,7 @@ public class TerrainExport : ScriptableWizard
         }
         catch (System.Exception e)
         {
+            Debug.Log(e);
             throw;
         }
     }
