@@ -197,7 +197,6 @@ public class TerrainInstance : MonoBehaviour
     {
         isInit = true;
         instanceCount = instanceCountX * instanceCountZ;
-        prop = new MaterialPropertyBlock();
 
         InitMat();
 
@@ -226,7 +225,7 @@ public class TerrainInstance : MonoBehaviour
 
     void UpdateMatProp()
     {
-        if(prop == null|| mat == null)
+        if(mat == null)
         {
             return;
         }
@@ -240,6 +239,8 @@ public class TerrainInstance : MonoBehaviour
             mat.SetTexture("_TerrainMapArray", terrainMapArray);
             mat.SetVectorArray("_TerrainMapSize", terrainMapTilingList.ToArray());
         }
+
+        prop = new MaterialPropertyBlock();
 
         prop.SetVectorArray("_StartEndUV", startEndUVList.ToArray());
         prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.ToArray());
