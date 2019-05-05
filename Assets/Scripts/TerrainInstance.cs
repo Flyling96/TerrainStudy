@@ -181,9 +181,9 @@ public class TerrainInstance : MonoBehaviour
                 index = j * countX + i;
                 instanceChunks[index].neighborChunk = new InstanceChunk[4];
                 instanceChunks[index].neighborChunk[0] = (j == countZ - 1) ? null : instanceChunks[(j + 1) * countX + i];//上
-                instanceChunks[index].neighborChunk[0] = (j == 0) ? null : instanceChunks[(j - 1) * countX + i];//下
-                instanceChunks[index].neighborChunk[0] = (i == 0) ? null : instanceChunks[j * countX + i - 1];//左
-                instanceChunks[index].neighborChunk[0] = (i == countX - 1) ? null : instanceChunks[j * countX + i + 1];//右
+                instanceChunks[index].neighborChunk[1] = (j == 0) ? null : instanceChunks[(j - 1) * countX + i];//下
+                instanceChunks[index].neighborChunk[2] = (i == 0) ? null : instanceChunks[j * countX + i - 1];//左
+                instanceChunks[index].neighborChunk[3] = (i == countX - 1) ? null : instanceChunks[j * countX + i + 1];//右
             }
         }
 
