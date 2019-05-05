@@ -452,7 +452,7 @@ public class TerrainInstance : MonoBehaviour
         if (isNeedChangeTexArray && matData != null && matData.TerrainTexArray.Length > 0)
         {
             Texture2D terrainTex = matData.TerrainTexArray[0];
-            terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, tempUseAlphaTexIndexList.Count, terrainTex.format, false);
+            terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, tempUseAlphaTexIndexList.Count, terrainTex.format, true);
             terrainMapTilingList = new List<Vector4>();
 
             for(int i=0;i<tempUseAlphaTexIndexList.Count;i++)
@@ -466,7 +466,7 @@ public class TerrainInstance : MonoBehaviour
                 terrainMapArray.SetPixels(matData.TerrainTexArray[index].GetPixels(), i);
                 terrainMapTilingList.Add(matData.TerrainMapTiling[index]);
             }
-            terrainMapArray.Apply();
+            terrainMapArray.Apply(true);
 
             useAlphaTexIndexList = tempUseAlphaTexIndexList;
         }
