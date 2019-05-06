@@ -13,14 +13,14 @@ public class TerrainExport : ScriptableWizard
         ScriptableWizard.DisplayWizard<TerrainExport>("保存地形", "保存", "取消");
     }
 
-    string mapName = "map004";
+    string mapName = "bigmap001";
     bool isChunk = true;
     bool isSaveCPUMesh = false;
     bool isSaveGPUMesh = true;
     bool isGPUInstance = true;
     bool isDivideMaterial = false;
-    int chunkWidth = 100; //块宽度（单位米）
-    int chunkLength = 100; //块长度 （单位米）
+    int chunkWidth = 1000; //块宽度（单位米）
+    int chunkLength = 1000; //块长度 （单位米）
     int chunkQuadCountX = 100; //块中横向网格数
     int chunkQuadCountZ = 100; //块中纵向网格数
     protected override bool DrawWizardGUI()
@@ -126,6 +126,8 @@ public class TerrainExport : ScriptableWizard
     float maxHeight = 0;
     string totalPath = "";
     string assetsPath = "";
+
+    Vector4[] startEndUVs;
     public void ExportTerrainData()
     {
         totalPath = Application.dataPath + "/TerrainData/";
@@ -150,10 +152,22 @@ public class TerrainExport : ScriptableWizard
         {
             chunkCountX = (int)(data.size.x / chunkWidth) + (data.size.x % chunkWidth != 0 ? 1 : 0);
             chunkCountZ = (int)(data.size.z / chunkLength) + (data.size.z % chunkLength != 0 ? 1 : 0);
-            chunkHeightPixelCountX = (int)(heightMapWidth * chunkWidth / data.size.x) + 1;
-            chunkHeightPixelCountZ = (int)(heightMapHeight * chunkLength / data.size.z) + 1;
-            chunkAlphaPixelCountX = (int)(alphaMapWidth * chunkWidth / data.size.x) + 1;
-            chunkAlphaPixelCountZ = (int)(alphaMapHeight * chunkLength / data.size.z) + 1;
+            startEndUVs = new Vector4[chunkCountX * chunkCountZ];
+            chunkHeightPixelCountX = heightMapWidth / chunkCountX + (heightMapWidth % chunkCountX != 0 ? 1 : 0); 
+            chunkHeightPixelCountZ = heightMapHeight / chunkCountZ + (heightMapHeight % chunkCountZ != 0 ? 1 : 0);
+            chunkAlphaPixelCountX = alphaMapWidth / chunkCountX + (alphaMapWidth % chunkCountX != 0 ? 1 : 0);
+            chunkAlphaPixelCountZ = alphaMapHeight/ chunkCountZ + (alphaMapHeight % chunkCountZ != 0 ? 1 : 0);
+            for(int j=0;j<chunkCountZ;j++)
+            {
+                for(int i=0;i<chunkCountX;i++)
+                {
+                    int chunkIndex = j * chunkCountX + i;
+                    startEndUVs[chunkIndex] = new Vector4(i * chunkAlphaPixelCountX / (float)alphaMapWidth, j * chunkAlphaPixelCountZ / (float)alphaMapHeight,
+                        (i + 1) * chunkAlphaPixelCountX / (float)alphaMapWidth, (j + 1) * chunkAlphaPixelCountZ / (float)alphaMapHeight);
+                    startEndUVs[chunkIndex].z = startEndUVs[chunkIndex].z > 1 ? 1 : startEndUVs[chunkIndex].z;
+                    startEndUVs[chunkIndex].w = startEndUVs[chunkIndex].w > 1 ? 1 : startEndUVs[chunkIndex].w;
+                }
+            }
         }
         else
         {
@@ -161,8 +175,8 @@ public class TerrainExport : ScriptableWizard
             chunkCountZ = 1;
             chunkHeightPixelCountX = heightMapWidth;
             chunkHeightPixelCountZ = heightMapHeight;
-            chunkAlphaPixelCountX = alphaMapHeight;
-            chunkAlphaPixelCountZ = alphaMapWidth;
+            chunkAlphaPixelCountX = alphaMapWidth;
+            chunkAlphaPixelCountZ = alphaMapHeight;
         }
 
         heights = new float[heightMapWidth, heightMapHeight];
@@ -810,7 +824,7 @@ public class TerrainExport : ScriptableWizard
 
         string imageName = mapName + "_Total_AlphaMap.png";
 
-        Texture2D alphaMapTex = new Texture2D(alphaMapWidth, alphaMapHeight, TextureFormat.RGBA32, true);
+        Texture2D alphaMapTex = new Texture2D(alphaMapWidth, alphaMapHeight, TextureFormat.RGBA32, false);
         //权重图采用双线性滤波
         alphaMapTex.filterMode = FilterMode.Bilinear;
         Vector4 alphaWeight;
@@ -1000,7 +1014,7 @@ public class TerrainExport : ScriptableWizard
 
         string meshName = mapName + "_Chunk_Mesh.asset";
         Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
-        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation,alphaTexIndexArray,chunkMinAndMaxHeight);
+        terrainInstance.InitData(mesh, chunkCountX,chunkCountZ,chunkWidth,chunkLength,terrainInstance.transform.rotation,alphaTexIndexArray,chunkMinAndMaxHeight,startEndUVs);
 
         string prefabName = mapName + "_Instance.prefab";
         PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, assetsPath + "/" + prefabName,InteractionMode.AutomatedAction);

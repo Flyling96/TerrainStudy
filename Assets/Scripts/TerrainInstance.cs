@@ -100,6 +100,8 @@ public class TerrainInstance : MonoBehaviour
     [SerializeField]
     private int instanceCountZ = 0;
     [SerializeField]
+    private int chunkWidth = 0;
+    [SerializeField]
     private MatData matData;
     [SerializeField]
     private InstanceChunk[] instanceChunks;
@@ -139,12 +141,13 @@ public class TerrainInstance : MonoBehaviour
     }
 
 
-    public void InitData(Mesh tempMesh,int countX,int countZ,int chunkWidth,int chunkLength,Quaternion rotation,Vector4[] tAlphaTexIndexs,Vector2[] tMinAndMaxHeight)
+    public void InitData(Mesh tempMesh,int countX,int countZ,int tChunkWidth,int tChunkLength,Quaternion rotation,Vector4[] tAlphaTexIndexs,Vector2[] tMinAndMaxHeight,Vector4[] startEndUVs)
     {
         int count = countX * countZ;
         instanceCount = count;
         instanceCountX = countX;
         instanceCountZ = countZ;
+        chunkWidth = tChunkWidth;
         mesh = tempMesh;
         //alphaTexIndexs = tAlphaTexIndexs;
         //startEndUVs = new Vector4[count];
@@ -160,13 +163,14 @@ public class TerrainInstance : MonoBehaviour
             {
                 index = j * countX + i;
                 instanceChunks[index] = new GameObject(transform.name + "_chunk" + index).AddComponent<InstanceChunk>();
-                instanceChunks[index].startEndUV = (new Vector4((float)i / countX, (float)j / countZ, (float)(i + 1) / countX, (float)(j + 1) / countZ));
+                //instanceChunks[index].startEndUV = (new Vector4((float)i / countX, (float)j / countZ, (float)(i + 1) / countX, (float)(j + 1) / countZ));
+                instanceChunks[index].startEndUV = startEndUVs[index];
                 instanceChunks[index].alphaTexIndex = tAlphaTexIndexs[index];
                 instanceChunks[index].minAndMaxHeight = tMinAndMaxHeight[index] * matData.MaxHeight;
                 matr = new Matrix4x4();
-                chunkPos = transform.position + new Vector3(i * chunkWidth, 0, j * chunkLength);
+                chunkPos = transform.position + new Vector3(i * tChunkWidth, 0, j * tChunkLength);
                 matr.SetTRS(chunkPos,rotation, Vector3.one);
-                instanceChunks[index].chunkSize = new Vector2(chunkWidth, chunkLength);
+                instanceChunks[index].chunkSize = new Vector2(tChunkWidth, tChunkLength);
                 instanceChunks[index].trsMatrix = matr;
                 instanceChunks[index].transform.position = chunkPos;
                 instanceChunks[index].transform.rotation = rotation;
@@ -295,23 +299,30 @@ public class TerrainInstance : MonoBehaviour
 
     int CacuTessCount(float lodLevel)
     {
+        int result = 0;
         switch (lodLevel)
         {
             case 1:
-                return 100;
+                result = 100;
+                break;
             case 2:
-                return 50;
+                result = 50;
+                break;
             case 3:
-                return 20;
+                result = 20;
+                break;
             case 4:
-                return 5;
+                result = 5;
+                break;
             case 5:
-                return 1;
+                result = 1;
+                break;
             default:
-                return 1;
+                result = 1;
+                break;
         }
-
-
+        result = result * chunkWidth / 100;
+        return result < 1 ? 1 : result;
     }
 
     Vector3 sourcePos;
@@ -404,6 +415,11 @@ public class TerrainInstance : MonoBehaviour
                 }
 
             }
+        }
+
+        if(showChunkCount < 1)
+        {
+            return;
         }
 
         tempUseAlphaTexIndexList.Remove(-1);

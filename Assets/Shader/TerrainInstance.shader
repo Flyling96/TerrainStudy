@@ -164,7 +164,7 @@
 					heightUV.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
 
 
-					float2 alphaLimit = float2(2.0f / _ChunkPixelCount.z, 2.0f / _ChunkPixelCount.w);
+					float2 alphaLimit = float2(0.5f / _ChunkPixelCount.z, 0.5f / _ChunkPixelCount.w);
 					o.uv.x = o.uv.x * step(alphaLimit.x, o.uv.x) + alphaLimit.x * (1 - step(alphaLimit.x, o.uv.x));
 					o.uv.x = o.uv.x * step(o.uv.x,1-alphaLimit.x) + (1-alphaLimit.x) * (1 - step(o.uv.x, 1 - alphaLimit.x));
 					o.uv.y = o.uv.y * step(alphaLimit.y, o.uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, o.uv.y));
@@ -194,6 +194,7 @@
 				float4 GetAlphaColor(float4 alphaTexIndexs, float2 uv)
 				{
 					float4 weight = tex2D(_AlphaMap, uv);
+					//return weight;
 					float4 color = UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.x), alphaTexIndexs.x)) * weight.x * step(0, alphaTexIndexs.x)+
 						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.y), alphaTexIndexs.y)) * weight.y * step(0, alphaTexIndexs.y) +
 						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.z), alphaTexIndexs.z)) * weight.z * step(0, alphaTexIndexs.z) +
@@ -205,6 +206,7 @@
 
 				float4 frag(v2f i) : SV_Target
 				{
+					//return float4(i.uv.x,i.uv.y,0,1);
 					UNITY_SETUP_INSTANCE_ID(i);
 #ifdef UNITY_INSTANCING_ENABLED
 					float4 alphaTexIndexs = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _AlphaTexIndexs);
