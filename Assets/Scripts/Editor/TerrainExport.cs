@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using TerrainECS;
 
 public class TerrainExport : ScriptableWizard
 {
@@ -18,6 +19,7 @@ public class TerrainExport : ScriptableWizard
     bool isSaveCPUMesh = false;
     bool isSaveGPUMesh = true;
     bool isGPUInstance = true;
+    bool isChunkECS = true;
     bool isDivideMaterial = false;
     int chunkWidth = 1000; //块宽度（单位米）
     int chunkLength = 1000; //块长度 （单位米）
@@ -48,6 +50,7 @@ public class TerrainExport : ScriptableWizard
         }
         else
         {
+            isChunkECS = EditorGUILayout.Toggle("是否采用 ECS", isChunkECS);
             chunkWidth = EditorGUILayout.IntField("块宽度(X)", chunkWidth);
             chunkLength = EditorGUILayout.IntField("块长度(Z)", chunkLength);
             chunkQuadCountX = 1;
@@ -999,7 +1002,16 @@ public class TerrainExport : ScriptableWizard
     {
         GameObject prefab = new GameObject();
         prefab.name = mapName + "_Instance";
-        TerrainInstance terrainInstance = prefab.AddComponent<TerrainInstance>();
+
+        TerrainInstanceSubClass terrainInstance;
+        if (!isChunkECS)
+        {
+            terrainInstance = prefab.AddComponent<TerrainInstance>();
+        }
+        else
+        {
+            terrainInstance = prefab.AddComponent<ECSTerrainInstance>();
+        }
 
         string path = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
         Texture2D hnTex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;

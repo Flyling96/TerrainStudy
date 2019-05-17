@@ -12,7 +12,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
         public Vector3 max;
     }
 
-    List<TerrainInstance> terrainInstanceList = new List<TerrainInstance>();
+    List<ITerrainInstance> terrainInstanceList = new List<ITerrainInstance>();
     public Camera mainCamera;
 
     private void OnEnable()
@@ -20,7 +20,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
         mainCamera = GameObject.Find("Main Camera").GetComponent<Camera>();
     }
 
-    public void Register(TerrainInstance terrainInstance)
+    public void Register(ITerrainInstance terrainInstance)
     {
         if(!terrainInstanceList.Contains(terrainInstance))
         {
@@ -28,7 +28,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
         }
     }
 
-    public void Remove(TerrainInstance terrainInstance)
+    public void Remove(ITerrainInstance terrainInstance)
     {
         if (!terrainInstanceList.Contains(terrainInstance))
         {
