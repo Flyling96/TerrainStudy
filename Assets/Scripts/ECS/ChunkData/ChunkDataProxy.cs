@@ -11,11 +11,14 @@ namespace TerrainECS
     {
         public float4 StartEndUV;
 
+        public int ChunkIndex;
+
         public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
         {
             var data = new ChunkDataComponent
             {
-                startEndUV = StartEndUV
+                startEndUV = StartEndUV,
+                chunkIndex = ChunkIndex
             };
             dstManager.AddComponentData(entity, data);
         }

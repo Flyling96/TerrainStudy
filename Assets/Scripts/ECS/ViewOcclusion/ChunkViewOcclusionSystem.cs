@@ -6,16 +6,16 @@ using Unity.Jobs;
 
 namespace TerrainECS
 {
-    public class ChunkViewOcclusionSystem : JobComponentSystem
-    {
-        protected override void OnCreate()
-        {
-            base.OnCreate();
-        }
+    //public class ChunkViewOcclusionSystem : JobComponentSystem
+    //{
+    //    protected override void OnCreate()
+    //    {
+    //        base.OnCreate();
+    //    }
 
-        protected override JobHandle OnUpdate(JobHandle inputDeps)
-        {
-            throw new System.NotImplementedException();
-        }
-    }
+    //    protected override JobHandle OnUpdate(JobHandle inputDeps)
+    //    {
+    //        throw new System.NotImplementedException();
+    //    }
+    //}
 }

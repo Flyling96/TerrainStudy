@@ -6,6 +6,50 @@ using System;
 [ExecuteInEditMode]
 public class TerrainInstance : TerrainInstanceSubClass
 {
+    [SerializeField]
+    private InstanceChunk[] instanceChunks;
+
+    public override void InitData(Mesh tempMesh, int countX, int countZ, int tChunkWidth, int tChunkLength, Quaternion rotation, Vector4[] tAlphaTexIndexs, Vector2[] tMinAndMaxHeight, Vector4[] startEndUVs)
+    {
+        base.InitData(tempMesh, countX, countZ, tChunkWidth, tChunkLength, rotation, tAlphaTexIndexs, tMinAndMaxHeight, startEndUVs);
+        instanceChunks = new InstanceChunk[instanceCount];
+        int index = 0;
+        Matrix4x4 matr;
+        Vector3 chunkPos;
+
+        for (int j = 0; j < countZ; j++)
+        {
+            for (int i = 0; i < countX; i++)
+            {
+                index = j * countX + i;
+                instanceChunks[index] = instanceChunkGos[index].AddComponent<InstanceChunk>();
+                instanceChunks[index].startEndUV = startEndUVs[index];
+                instanceChunks[index].alphaTexIndex = tAlphaTexIndexs[index];
+                instanceChunks[index].minAndMaxHeight = tMinAndMaxHeight[index] * matData.MaxHeight;
+                matr = new Matrix4x4();
+                chunkPos = transform.position + new Vector3(i * tChunkWidth, 0, j * tChunkLength);
+                matr.SetTRS(chunkPos, rotation, Vector3.one);
+                instanceChunks[index].chunkSize = new Vector2(tChunkWidth, tChunkLength);
+                instanceChunks[index].trsMatrix = matr;
+                instanceChunks[index].transform.position = chunkPos;
+                instanceChunks[index].transform.rotation = rotation;
+                instanceChunks[index].transform.SetParent(transform);
+            }
+        }
+
+        for (int j = 0; j < countZ; j++)
+        {
+            for (int i = 0; i < countX; i++)
+            {
+                index = j * countX + i;
+                instanceChunks[index].neighborChunk = new InstanceChunk[4];
+                instanceChunks[index].neighborChunk[0] = (j == countZ - 1) ? null : instanceChunks[(j + 1) * countX + i];//上
+                instanceChunks[index].neighborChunk[1] = (j == 0) ? null : instanceChunks[(j - 1) * countX + i];//下
+                instanceChunks[index].neighborChunk[2] = (i == 0) ? null : instanceChunks[j * countX + i - 1];//左
+                instanceChunks[index].neighborChunk[3] = (i == countX - 1) ? null : instanceChunks[j * countX + i + 1];//右
+            }
+        }
+    }
 
     void UpdateMatProp()
     {
@@ -39,70 +83,10 @@ public class TerrainInstance : TerrainInstanceSubClass
         for(int i=0;i<instanceCount;i++)
         {
             instancePos = instanceChunks[i].transform.position;
-            float lodLevel = CaculateLodLevel(instancePos, instanceChunks[i].minAndMaxHeight);
-            instanceChunks[i].selfVertexCount = CacuTessCount(lodLevel);
+            int lodLevel = InstanceMgr.instance.CaculateLodLevel(instancePos, instanceChunks[i].minAndMaxHeight);
+            instanceChunks[i].selfVertexCount = InstanceMgr.instance.CacuTessCount(lodLevel,chunkWidth);
         }
 
-    }
-
-    int CaculateLodLevel(Vector3 instancePos,Vector2 chunkMinAndMaxHeight)
-    {
-        float height = Mathf.Abs(chunkMinAndMaxHeight.y - chunkMinAndMaxHeight.x);
-        float distance = Vector3.Distance(instancePos, InstanceMgr.instance.mainCamera.transform.position);
-        int lodLevel = 1;
-
-        float power = distance * 0.2f + 600/(height+1) * 2.0f;
-
-        if (power < 30)
-        {
-            lodLevel = 1;
-        }
-        else if(power < 100)
-        {
-            lodLevel = 2;
-        }
-        else if(power < 300)
-        {
-            lodLevel = 3;
-        }
-        else if(power < 1000)
-        {
-            lodLevel = 4;
-        }
-        else
-        {
-            lodLevel = 5;
-        }
-
-        return lodLevel;
-    }
-
-    int CacuTessCount(float lodLevel)
-    {
-        int result = 0;
-        switch (lodLevel)
-        {
-            case 1:
-                result = 100;
-                break;
-            case 2:
-                result = 50;
-                break;
-            case 3:
-                result = 20;
-                break;
-            case 4:
-                result = 5;
-                break;
-            case 5:
-                result = 1;
-                break;
-            default:
-                result = 1;
-                break;
-        }
-        result = result * chunkWidth / 100;
-        return result < 1 ? 1 : result;
     }
 
     public override void Draw()

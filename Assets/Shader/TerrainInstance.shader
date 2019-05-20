@@ -132,6 +132,14 @@
 					o.inside[0] = lodVertexCount;
 					o.inside[1] = lodVertexCount;
 
+					//o.edge[0] = 3;
+					//o.edge[1] = 3;
+					//o.edge[2] = 3;
+					//o.edge[3] = 3;
+
+					//o.inside[0] = 10;
+					//o.inside[1] = 10;
+
 					return o;
 				}
 
@@ -206,7 +214,7 @@
 
 				float4 frag(v2f i) : SV_Target
 				{
-					//return float4(i.uv.x,i.uv.y,0,1);
+					return float4(i.uv.x,i.uv.y,0,1);
 					UNITY_SETUP_INSTANCE_ID(i);
 #ifdef UNITY_INSTANCING_ENABLED
 					float4 alphaTexIndexs = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _AlphaTexIndexs);

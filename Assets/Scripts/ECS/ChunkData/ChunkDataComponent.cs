@@ -11,7 +11,7 @@ namespace TerrainECS
     {
         public float4 startEndUV;
 
-        public Matrix4x4 trsMatrix;
+        public int chunkIndex;
     }
 
 }

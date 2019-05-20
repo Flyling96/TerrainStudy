@@ -103,7 +103,7 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
     protected MatData matData;
 
     [SerializeField]
-    protected InstanceChunk[] instanceChunks;
+    protected GameObject[] instanceChunkGos;
 
     protected int instanceCount = 0;
     protected MaterialPropertyBlock prop;
@@ -134,7 +134,7 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
         matData.SetValue(tex, max, aTex, tMapArray, tTexArray, tMapSize, cPixelCount);
     }
 
-    public void InitData(Mesh tempMesh, int countX, int countZ, int tChunkWidth, int tChunkLength, Quaternion rotation, Vector4[] tAlphaTexIndexs, Vector2[] tMinAndMaxHeight, Vector4[] startEndUVs)
+    public virtual void InitData(Mesh tempMesh, int countX, int countZ, int tChunkWidth, int tChunkLength, Quaternion rotation, Vector4[] tAlphaTexIndexs, Vector2[] tMinAndMaxHeight, Vector4[] startEndUVs)
     {
         int count = countX * countZ;
         instanceCount = count;
@@ -143,41 +143,18 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
         chunkWidth = tChunkWidth;
         mesh = tempMesh;
 
-        instanceChunks = new InstanceChunk[instanceCount];
-        int index = 0;
-        Matrix4x4 matr;
-        Vector3 chunkPos;
+        instanceChunkGos = new GameObject[instanceCount];
 
         for (int j = 0; j < countZ; j++)
         {
             for (int i = 0; i < countX; i++)
             {
-                index = j * countX + i;
-                instanceChunks[index] = new GameObject(transform.name + "_chunk" + index).AddComponent<InstanceChunk>();
-                instanceChunks[index].startEndUV = startEndUVs[index];
-                instanceChunks[index].alphaTexIndex = tAlphaTexIndexs[index];
-                instanceChunks[index].minAndMaxHeight = tMinAndMaxHeight[index] * matData.MaxHeight;
-                matr = new Matrix4x4();
-                chunkPos = transform.position + new Vector3(i * tChunkWidth, 0, j * tChunkLength);
-                matr.SetTRS(chunkPos, rotation, Vector3.one);
-                instanceChunks[index].chunkSize = new Vector2(tChunkWidth, tChunkLength);
-                instanceChunks[index].trsMatrix = matr;
-                instanceChunks[index].transform.position = chunkPos;
-                instanceChunks[index].transform.rotation = rotation;
-                instanceChunks[index].transform.SetParent(transform);
-            }
-        }
-
-        for (int j = 0; j < countZ; j++)
-        {
-            for (int i = 0; i < countX; i++)
-            {
-                index = j * countX + i;
-                instanceChunks[index].neighborChunk = new InstanceChunk[4];
-                instanceChunks[index].neighborChunk[0] = (j == countZ - 1) ? null : instanceChunks[(j + 1) * countX + i];//上
-                instanceChunks[index].neighborChunk[1] = (j == 0) ? null : instanceChunks[(j - 1) * countX + i];//下
-                instanceChunks[index].neighborChunk[2] = (i == 0) ? null : instanceChunks[j * countX + i - 1];//左
-                instanceChunks[index].neighborChunk[3] = (i == countX - 1) ? null : instanceChunks[j * countX + i + 1];//右
+                int index = j * countX + i;
+                instanceChunkGos[index] = new GameObject(transform.name + "_chunk" + index);
+                instanceChunkGos[index].transform.SetParent(this.transform);
+                instanceChunkGos[index].transform.position = transform.position + new Vector3(i * tChunkWidth, 0, j * tChunkLength);
+                instanceChunkGos[index].transform.rotation = rotation;
+                instanceChunkGos[index].transform.localScale = Vector3.one;
             }
         }
     }

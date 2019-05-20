@@ -14,7 +14,7 @@ public class TerrainExport : ScriptableWizard
         ScriptableWizard.DisplayWizard<TerrainExport>("保存地形", "保存", "取消");
     }
 
-    string mapName = "bigmap001";
+    string mapName = "ECS_BigMap001";
     bool isChunk = true;
     bool isSaveCPUMesh = false;
     bool isSaveGPUMesh = true;
