@@ -51,29 +51,29 @@ public class TerrainInstance : TerrainInstanceSubClass
         }
     }
 
-    void UpdateMatProp()
+    void UpdateMat()
     {
-        if(mat == null)
-        {
-            return;
-        }
 
-
-        //mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
-        //mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
-
-        if (matData != null)
+        if (mat!=null && matData != null)
         {
             mat.SetTexture("_TerrainMapArray", terrainMapArray);
             mat.SetVectorArray("_TerrainMapSize", terrainMapTilingList.ToArray());
         }
 
+    }
+
+    void DrawInstance(int index)
+    {
+        int maxListCount = showChunkCount > (index+1) * 1023 ? 1023 : showChunkCount - index * 1023;
+
         prop = new MaterialPropertyBlock();
 
-        prop.SetVectorArray("_StartEndUV", startEndUVList.ToArray());
-        prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.ToArray());
-        prop.SetVectorArray("_TessVertexCounts", neighborVertexCountList.ToArray());
-        prop.SetFloatArray("_LODTessVertexCounts", selfVertexCountList.ToArray());
+        prop.SetVectorArray("_StartEndUV", startEndUVList.GetRange(index * 1023, maxListCount).ToArray());
+        prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.GetRange(index * 1023, maxListCount).ToArray());
+        prop.SetVectorArray("_TessVertexCounts", neighborVertexCountList.GetRange(index * 1023, maxListCount).ToArray());
+        prop.SetFloatArray("_LODTessVertexCounts", selfVertexCountList.GetRange(index * 1023, maxListCount).ToArray());
+
+        Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.GetRange(index * 1023, maxListCount).ToArray(), maxListCount, prop);
 
     }
 
@@ -103,9 +103,12 @@ public class TerrainInstance : TerrainInstanceSubClass
             return;
         }
 
-        UpdateMatProp();
+        UpdateMat();
 
-        Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.ToArray(), showChunkCount, prop);
+        for (int i = 0; i < showChunkCount/1023 + 1; i++)
+        {
+            DrawInstance(i);
+        }
 
     }
 

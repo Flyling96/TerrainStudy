@@ -57,7 +57,7 @@ namespace TerrainECS
         List<float> selfVertexCountList = new List<float>();
         List<Vector4> neighborVertexCountList = new List<Vector4>();
 
-        void UpdateMatProp()
+        void UpdatePropInfo()
         {
             if (mat == null)
             {
@@ -98,22 +98,48 @@ namespace TerrainECS
             }
 
 
-            mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
-            mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
+            //mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
+            //mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
 
-            //if (matData != null)
-            //{
-            //    mat.SetTexture("_TerrainMapArray", terrainMapArray);
-            //    mat.SetVectorArray("_TerrainMapSize", terrainMapTilingList.ToArray());
-            //}
+            ////if (matData != null)
+            ////{
+            ////    mat.SetTexture("_TerrainMapArray", terrainMapArray);
+            ////    mat.SetVectorArray("_TerrainMapSize", terrainMapTilingList.ToArray());
+            ////}
+
+            //prop = new MaterialPropertyBlock();
+            //if (startEndUVList.Count < 1) return;
+
+            //prop.SetVectorArray("_StartEndUV", startEndUVList.ToArray());
+            //prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.ToArray());
+            //prop.SetVectorArray("_TessVertexCounts", neighborVertexCountList.ToArray());
+            //prop.SetFloatArray("_LODTessVertexCounts", selfVertexCountList.ToArray());
+
+        }
+
+        void UpdateMat()
+        {
+
+            if (mat != null && matData != null)
+            {
+                mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
+                mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
+            }
+
+        }
+
+        void DrawInstance(int index)
+        {
+            int maxListCount = trsList.Count > (index + 1) * 1023 ? 1023 : trsList.Count - index * 1023;
 
             prop = new MaterialPropertyBlock();
-            if (startEndUVList.Count < 1) return;
 
-            prop.SetVectorArray("_StartEndUV", startEndUVList.ToArray());
-            prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.ToArray());
-            prop.SetVectorArray("_TessVertexCounts", neighborVertexCountList.ToArray());
-            prop.SetFloatArray("_LODTessVertexCounts", selfVertexCountList.ToArray());
+            prop.SetVectorArray("_StartEndUV", startEndUVList.GetRange(index * 1023, maxListCount).ToArray());
+            prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.GetRange(index * 1023, maxListCount).ToArray());
+            prop.SetVectorArray("_TessVertexCounts", neighborVertexCountList.GetRange(index * 1023, maxListCount).ToArray());
+            prop.SetFloatArray("_LODTessVertexCounts", selfVertexCountList.GetRange(index * 1023, maxListCount).ToArray());
+
+            Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.GetRange(index * 1023, maxListCount).ToArray(), maxListCount, prop);
 
         }
 
@@ -125,11 +151,16 @@ namespace TerrainECS
 
             base.Draw();
 
-            UpdateMatProp();
+            UpdatePropInfo();
 
             if (trsList.Count < 1) return;
 
-            Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.ToArray(), trsList.Count, prop);
+            UpdateMat();
+
+            for (int i = 0; i < trsList.Count / 1023 + 1; i++)
+            {
+                DrawInstance(i);
+            }
 
         }
     }

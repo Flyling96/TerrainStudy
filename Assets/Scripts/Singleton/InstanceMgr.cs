@@ -14,7 +14,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
         public Vector3 max;
     }
 
-    List<ITerrainInstance> terrainInstanceList = new List<ITerrainInstance>();
+    List<TerrainInstanceSubClass> terrainInstanceList = new List<TerrainInstanceSubClass>();
     public Camera mainCamera;
     public Vector3 mainCameraPos;
     //public Vector2 chunkSize;
@@ -26,7 +26,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
         mainCameraPos = mainCamera.transform.position;
     }
 
-    public void Register(ITerrainInstance terrainInstance)
+    public void Register(TerrainInstanceSubClass terrainInstance)
     {
         if(!terrainInstanceList.Contains(terrainInstance))
         {
@@ -34,7 +34,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
         }
     }
 
-    public void Remove(ITerrainInstance terrainInstance)
+    public void Remove(TerrainInstanceSubClass terrainInstance)
     {
         if (!terrainInstanceList.Contains(terrainInstance))
         {
@@ -49,7 +49,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
 
         for (int i= terrainInstanceList.Count-1; i>-1;i--)
         {
-            if (terrainInstanceList[i] == null)
+            if (terrainInstanceList[i] == null || terrainInstanceList[i].transform == null)
             {
                 terrainInstanceList.RemoveAt(i);
                 continue;

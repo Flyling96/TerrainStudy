@@ -17,7 +17,6 @@ namespace TerrainECS
             m_Group = GetEntityQuery(typeof(Translation),ComponentType.ReadWrite<UpdateLodComponent>());
         }
 
-        [BurstCompile]
         struct UpdateLodJob : IJobChunk
         {
             [ReadOnly] public ArchetypeChunkComponentType<Translation> TranslationType;

@@ -18,7 +18,6 @@ namespace TerrainECS
                 ComponentType.ReadOnly<UpdateLodComponent>(),ComponentType.ReadOnly<ChunkViewOcclusionComponent>());
         }
 
-        [BurstCompile]
         struct ChunkDataJob : IJobChunk
         {
             [ReadOnly] public ArchetypeChunkComponentType<LocalToWorld> LocalToWroldType;

@@ -17,7 +17,6 @@ namespace TerrainECS
             m_Group = GetEntityQuery(ComponentType.ReadOnly<ChunkDataComponent>(), ComponentType.ReadWrite<ChunkViewOcclusionComponent>());
         }
 
-        [BurstCompile]
         struct ChunkViewOcclusionJob : IJobChunk
         {
             [ReadOnly] public ArchetypeChunkComponentType<Translation> TranslationType;
