@@ -11,6 +11,8 @@ namespace TerrainECS
     {
         public float4 StartEndUV;
 
+        public float4 AlphaTexIndex;
+
         public int ChunkIndex;
 
         public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
@@ -18,6 +20,7 @@ namespace TerrainECS
             var data = new ChunkDataComponent
             {
                 startEndUV = StartEndUV,
+                alphaTexIndex = AlphaTexIndex,
                 chunkIndex = ChunkIndex
             };
             dstManager.AddComponentData(entity, data);

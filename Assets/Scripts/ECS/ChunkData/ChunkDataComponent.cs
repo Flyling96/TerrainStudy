@@ -11,6 +11,8 @@ namespace TerrainECS
     {
         public float4 startEndUV;
 
+        public float4 alphaTexIndex;
+
         public int chunkIndex;
     }
 

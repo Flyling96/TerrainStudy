@@ -84,7 +84,7 @@ public class TerrainInstance : TerrainInstanceSubClass
         {
             instancePos = instanceChunks[i].transform.position;
             int lodLevel = InstanceMgr.instance.CaculateLodLevel(instancePos, instanceChunks[i].minAndMaxHeight);
-            instanceChunks[i].selfVertexCount = InstanceMgr.instance.CacuTessCount(lodLevel,chunkWidth);
+            instanceChunks[i].selfVertexCount = InstanceMgr.instance.CacuTessCount(lodLevel,(int)chunkSize.x);
         }
 
     }

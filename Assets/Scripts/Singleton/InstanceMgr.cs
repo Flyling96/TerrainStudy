@@ -17,6 +17,8 @@ public class InstanceMgr : Singleton<InstanceMgr>
     List<ITerrainInstance> terrainInstanceList = new List<ITerrainInstance>();
     public Camera mainCamera;
     public Vector3 mainCameraPos;
+    //public Vector2 chunkSize;
+    Matrix4x4 mainCameraWorldToProjection; 
 
     private void OnEnable()
     {
@@ -43,6 +45,8 @@ public class InstanceMgr : Singleton<InstanceMgr>
     private void Update()
     {
         mainCameraPos = mainCamera.transform.position;
+        mainCameraWorldToProjection = mainCamera.projectionMatrix * mainCamera.worldToCameraMatrix;
+
         for (int i= terrainInstanceList.Count-1; i>-1;i--)
         {
             if (terrainInstanceList[i] == null)
@@ -272,7 +276,6 @@ public class InstanceMgr : Singleton<InstanceMgr>
             return false;
         }
 
-        Matrix4x4 matrix = camera.projectionMatrix * camera.worldToCameraMatrix;
         int mask = Convert.ToInt32("FF", 16);
 
         Vector4 worldPos;
@@ -282,7 +285,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
                 ((i & 0x02) == 0 ? aabb.min : aabb.max).y,
                 ((i & 0x04) == 0 ? aabb.min : aabb.max).z,1);
 
-            mask &= ComputeProjectionMask(worldPos, matrix);
+            mask &= ComputeProjectionMask(worldPos, mainCameraWorldToProjection);
         }
 
         //存在AABB八个顶点在一个视锥体面之外

@@ -14,20 +14,20 @@ namespace TerrainECS
 
         protected override void OnCreate()
         {
-            m_Group = GetEntityQuery(typeof(Translation), ComponentType.ReadWrite<UpdateLodComponent>());
+            m_Group = GetEntityQuery(typeof(Translation),ComponentType.ReadWrite<UpdateLodComponent>());
         }
 
         [BurstCompile]
         struct UpdateLodJob : IJobChunk
         {
-            public float DeltaTime;
-            [ReadOnly] public ArchetypeChunkComponentType<Translation> Translation;
+            [ReadOnly] public ArchetypeChunkComponentType<Translation> TranslationType;
             public ArchetypeChunkComponentType<UpdateLodComponent> UpdateLodType;
 
             public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex)
             {
-                var chunkTranslations = chunk.GetNativeArray(Translation);
+                var chunkTranslations = chunk.GetNativeArray(TranslationType);
                 var chunkUpdateLods = chunk.GetNativeArray(UpdateLodType);
+
                 for (var i = 0; i < chunk.Count; i++)
                 {
                     var translation = chunkTranslations[i];
@@ -52,7 +52,7 @@ namespace TerrainECS
 
             var job = new UpdateLodJob()
             {
-                Translation = translationType,
+                TranslationType = translationType,
                 UpdateLodType = updateLodType,
             };
 

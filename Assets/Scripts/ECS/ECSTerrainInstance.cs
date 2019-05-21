@@ -10,23 +10,9 @@ namespace TerrainECS
     [ExecuteInEditMode]
     public class ECSTerrainInstance : TerrainInstanceSubClass
     {
-
-        private void Start()
+        public void Awake()
         {
-            if(Application.isPlaying)
-            {
-                //var entityManager = World.Active.EntityManager;
-                //GameObject go = instanceChunks[0].gameObject;
-                //for (int i=0;i< instanceChunks.Length;i++)
-                //{
-                //    Entity instance = GameObjectConversionUtility.ConvertGameObjectHierarchy(go, World.Active);
-                //    entityManager.SetComponentData(instance, new ChunkDataComponent
-                //    {
-                //        startEndUV = instanceChunks[i].startEndUV,
-                //        trsMatrix = instanceChunks[i].trsMatrix
-                //    });
-                //}
-            }
+            //InstanceMgr.instance.chunkSize = chunkSize;
         }
 
         public override void InitData(Mesh tempMesh, int countX, int countZ, int tChunkWidth, int tChunkLength, Quaternion rotation, Vector4[] tAlphaTexIndexs, Vector2[] tMinAndMaxHeight, Vector4[] startEndUVs)
@@ -42,6 +28,7 @@ namespace TerrainECS
                     instanceChunkGos[index].AddComponent<ConvertToEntity>();
                     ChunkDataProxy chunkDataProxy = instanceChunkGos[index].AddComponent<ChunkDataProxy>();
                     chunkDataProxy.StartEndUV = startEndUVs[index];
+                    chunkDataProxy.AlphaTexIndex = tAlphaTexIndexs[index];
                     chunkDataProxy.ChunkIndex = index;
                     matr = new Matrix4x4();
                     matr.SetTRS(instanceChunkGos[index].transform.position, rotation, Vector3.one);
@@ -55,12 +42,17 @@ namespace TerrainECS
                     updateLodProxy.SelfVertexCount = 1;
                     updateLodProxy.NeighborVertexCount = new float4(1, 1, 1, 1);
 
+                    ChunkViewOcclusionProxy chunkViewOcclusionProxy = instanceChunkGos[index].AddComponent<ChunkViewOcclusionProxy>();
+                    chunkViewOcclusionProxy.MinAndMaxHeight = tMinAndMaxHeight[index] * matData.MaxHeight;
+                    chunkViewOcclusionProxy.ChunkSize = chunkSize;
+
                 }
             }
 
         }
 
         List<Vector4> startEndUVList = new List<Vector4>();
+        List<Vector4> alphaTexIndexList = new List<Vector4>();
         List<Matrix4x4> trsList = new List<Matrix4x4>();
         List<float> selfVertexCountList = new List<float>();
         List<Vector4> neighborVertexCountList = new List<Vector4>();
@@ -76,35 +68,38 @@ namespace TerrainECS
             trsList.Clear();
             selfVertexCountList.Clear();
             neighborVertexCountList.Clear();
+            alphaTexIndexList.Clear();
 
-            var entityManager = World.Active.EntityManager;
-            var entities = entityManager.GetAllEntities();
-            Dictionary<int, UpdateLodComponent> lodLevelDic = new Dictionary<int, UpdateLodComponent>();
 
-            for (int i=0;i< entities.Length;i++)
+            Dictionary<int, UpdateLodComponent> lodLevelDic = ECSDataManager.instance.UpdateLodDic;
+
+            foreach (int key in ECSDataManager.instance.ChunkDataDic.Keys)
             {
-                ChunkDataComponent chunkData = entityManager.GetComponentData<ChunkDataComponent>(entities[i]);
+                ChunkViewOcclusionComponent chunkViewOcclusion = ECSDataManager.instance.ChunkViewOcclusuinDic[key];
+                if(!chunkViewOcclusion.isShow)
+                {
+                    continue;
+                }
+                ChunkDataComponent chunkData = ECSDataManager.instance.ChunkDataDic[key];
                 startEndUVList.Add(chunkData.startEndUV);
-                LocalToWorld localToWorld = entityManager.GetComponentData<LocalToWorld>(entities[i]);
+                alphaTexIndexList.Add(chunkData.alphaTexIndex);
+                LocalToWorld localToWorld = ECSDataManager.instance.LocalToWorldDic[key];
                 trsList.Add(localToWorld.Value);
-                UpdateLodComponent updateLod = entityManager.GetComponentData<UpdateLodComponent>(entities[i]);
+                UpdateLodComponent updateLod = ECSDataManager.instance.UpdateLodDic[key];
                 selfVertexCountList.Add(updateLod.selfVertexCount);
-                lodLevelDic.Add(chunkData.chunkIndex, updateLod);
-            }
 
-            foreach(int chunkIndex in lodLevelDic.Keys)
-            {
-                float4 neighborChunkIndexs = lodLevelDic[chunkIndex].neighborChunkIndexs;
+                float4 neighborChunkIndexs = lodLevelDic[key].neighborChunkIndexs;
                 neighborVertexCountList.Add(new Vector4(
-                    Mathf.Min(lodLevelDic[chunkIndex].selfVertexCount,(neighborChunkIndexs[0] != -1 ? lodLevelDic[(int)neighborChunkIndexs[0]].selfVertexCount : lodLevelDic[chunkIndex].selfVertexCount)),
-                    Mathf.Min(lodLevelDic[chunkIndex].selfVertexCount, (neighborChunkIndexs[1] != -1 ? lodLevelDic[(int)neighborChunkIndexs[1]].selfVertexCount : lodLevelDic[chunkIndex].selfVertexCount)),
-                    Mathf.Min(lodLevelDic[chunkIndex].selfVertexCount, (neighborChunkIndexs[2] != -1 ? lodLevelDic[(int)neighborChunkIndexs[2]].selfVertexCount : lodLevelDic[chunkIndex].selfVertexCount)),
-                    Mathf.Min(lodLevelDic[chunkIndex].selfVertexCount, (neighborChunkIndexs[3] != -1 ? lodLevelDic[(int)neighborChunkIndexs[3]].selfVertexCount : lodLevelDic[chunkIndex].selfVertexCount))
+                    Mathf.Min(lodLevelDic[key].selfVertexCount, (neighborChunkIndexs[0] != -1 ? lodLevelDic[(int)neighborChunkIndexs[0]].selfVertexCount : lodLevelDic[key].selfVertexCount)),
+                    Mathf.Min(lodLevelDic[key].selfVertexCount, (neighborChunkIndexs[1] != -1 ? lodLevelDic[(int)neighborChunkIndexs[1]].selfVertexCount : lodLevelDic[key].selfVertexCount)),
+                    Mathf.Min(lodLevelDic[key].selfVertexCount, (neighborChunkIndexs[2] != -1 ? lodLevelDic[(int)neighborChunkIndexs[2]].selfVertexCount : lodLevelDic[key].selfVertexCount)),
+                    Mathf.Min(lodLevelDic[key].selfVertexCount, (neighborChunkIndexs[3] != -1 ? lodLevelDic[(int)neighborChunkIndexs[3]].selfVertexCount : lodLevelDic[key].selfVertexCount))
                     ));
             }
 
-            //mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
-            //mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
+
+            mat.SetTexture("_TerrainMapArray", matData.TerrainMapArray);
+            mat.SetVectorArray("_TerrainMapSize", matData.TerrainMapTiling);
 
             //if (matData != null)
             //{
@@ -113,9 +108,10 @@ namespace TerrainECS
             //}
 
             prop = new MaterialPropertyBlock();
+            if (startEndUVList.Count < 1) return;
 
             prop.SetVectorArray("_StartEndUV", startEndUVList.ToArray());
-            //prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.ToArray());
+            prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.ToArray());
             prop.SetVectorArray("_TessVertexCounts", neighborVertexCountList.ToArray());
             prop.SetFloatArray("_LODTessVertexCounts", selfVertexCountList.ToArray());
 
@@ -131,7 +127,9 @@ namespace TerrainECS
 
             UpdateMatProp();
 
-            Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.ToArray(), instanceCount, prop);
+            if (trsList.Count < 1) return;
+
+            Graphics.DrawMeshInstanced(mesh, 0, mat, trsList.ToArray(), trsList.Count, prop);
 
         }
     }

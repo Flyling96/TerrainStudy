@@ -214,7 +214,7 @@
 
 				float4 frag(v2f i) : SV_Target
 				{
-					return float4(i.uv.x,i.uv.y,0,1);
+					//return float4(i.uv.x,i.uv.y,0,1);
 					UNITY_SETUP_INSTANCE_ID(i);
 #ifdef UNITY_INSTANCING_ENABLED
 					float4 alphaTexIndexs = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _AlphaTexIndexs);

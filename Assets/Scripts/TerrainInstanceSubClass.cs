@@ -98,7 +98,7 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
     [SerializeField]
     protected int instanceCountZ = 0;
     [SerializeField]
-    protected int chunkWidth = 0;
+    protected Vector2 chunkSize;
     [SerializeField]
     protected MatData matData;
 
@@ -140,7 +140,7 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
         instanceCount = count;
         instanceCountX = countX;
         instanceCountZ = countZ;
-        chunkWidth = tChunkWidth;
+        chunkSize = new Vector2(tChunkWidth, tChunkLength);
         mesh = tempMesh;
 
         instanceChunkGos = new GameObject[instanceCount];
