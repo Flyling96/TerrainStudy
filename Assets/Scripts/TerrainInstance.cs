@@ -136,8 +136,11 @@ public class TerrainInstance : TerrainInstanceSubClass
     Texture2DArray terrainMapArray;
     List<Vector4> terrainMapTilingList = new List<Vector4>();
     List<Matrix4x4> trsList = new List<Matrix4x4>();
-    List<float> useAlphaTexIndexList = new List<float>();
+    List<int> useAlphaTexIndexList = new List<int>();
+    List<int> terrainMapArrayIndexList = new List<int>();
     int showChunkCount = 0;
+
+    const int maxTerrainMapArrayCount = 10;
 
     //cpu剔除块
     void ViewOcclusion()
@@ -147,14 +150,13 @@ public class TerrainInstance : TerrainInstanceSubClass
         selfVertexCountList.Clear();
         neighborVertexCountList.Clear();
         trsList.Clear();
+        useAlphaTexIndexList.Clear();
         showChunkCount = 0;
-
-        List<float> tempUseAlphaTexIndexList = new List<float>();
 
         for(int i=0;i<instanceCount; i++)
         {
             instanceChunks[i].CacuIsBoundInCamera();
-            if (instanceChunks[i].isShow)
+            if (instanceChunks[i].IsShow)
             {
                 showChunkCount++;
                 instanceChunks[i].CaculateNeighborVertexCount();
@@ -163,93 +165,150 @@ public class TerrainInstance : TerrainInstanceSubClass
                 neighborVertexCountList.Add(instanceChunks[i].neighborVertexCount);
                 trsList.Add(instanceChunks[i].trsMatrix);
 
-                if (instanceChunks[i].alphaTexIndex.x != -1 && !tempUseAlphaTexIndexList.Contains(instanceChunks[i].alphaTexIndex.x))
+                if (instanceChunks[i].alphaTexIndex.x != -1 && !useAlphaTexIndexList.Contains((int)instanceChunks[i].alphaTexIndex.x))
                 {
-                    tempUseAlphaTexIndexList.Add(instanceChunks[i].alphaTexIndex.x);
+                    useAlphaTexIndexList.Add((int)instanceChunks[i].alphaTexIndex.x);
                 }
-                if (instanceChunks[i].alphaTexIndex.y != -1 && !tempUseAlphaTexIndexList.Contains(instanceChunks[i].alphaTexIndex.y))
+                if (instanceChunks[i].alphaTexIndex.y != -1 && !useAlphaTexIndexList.Contains((int)instanceChunks[i].alphaTexIndex.y))
                 {
-                    tempUseAlphaTexIndexList.Add(instanceChunks[i].alphaTexIndex.y);
+                    useAlphaTexIndexList.Add((int)instanceChunks[i].alphaTexIndex.y);
                 }
-                if (instanceChunks[i].alphaTexIndex.z != -1 && !tempUseAlphaTexIndexList.Contains(instanceChunks[i].alphaTexIndex.z))
+                if (instanceChunks[i].alphaTexIndex.z != -1 && !useAlphaTexIndexList.Contains((int)instanceChunks[i].alphaTexIndex.z))
                 {
-                    tempUseAlphaTexIndexList.Add(instanceChunks[i].alphaTexIndex.z);
+                    useAlphaTexIndexList.Add((int)instanceChunks[i].alphaTexIndex.z);
                 }
-                if (instanceChunks[i].alphaTexIndex.w != -1 && !tempUseAlphaTexIndexList.Contains(instanceChunks[i].alphaTexIndex.w))
+                if (instanceChunks[i].alphaTexIndex.w != -1 && !useAlphaTexIndexList.Contains((int)instanceChunks[i].alphaTexIndex.w))
                 {
-                    tempUseAlphaTexIndexList.Add(instanceChunks[i].alphaTexIndex.w);
+                    useAlphaTexIndexList.Add((int)instanceChunks[i].alphaTexIndex.w);
                 }
 
             }
         }
 
-        if (showChunkCount < 1)
+        if (showChunkCount < 1 || matData == null)
         {
             return;
         }
 
-        tempUseAlphaTexIndexList.Remove(-1);
+        useAlphaTexIndexList.Remove(-1);
 
-        bool isNeedChangeTexArray = false;
-
-        if(useAlphaTexIndexList.Count != tempUseAlphaTexIndexList.Count)
+ 
+        if (terrainMapArray == null)
         {
-            isNeedChangeTexArray = true;
-        }
-        else
-        {
-            for(int i=0;i<tempUseAlphaTexIndexList.Count;i++)
+            Texture2D terrainTex = matData.TerrainTexArray[0];
+            terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, maxTerrainMapArrayCount, terrainTex.format, true);
+            terrainMapArrayIndexList.Clear();
+            for (int i=0;i<maxTerrainMapArrayCount;i++)
             {
-                if(!useAlphaTexIndexList.Contains(tempUseAlphaTexIndexList[i]))
+                terrainMapArrayIndexList.Add(-1);
+                terrainMapTilingList.Add(new Vector4(1, 1, 0, 0));
+            }
+        }
+
+        bool isTerrainMapArrayChange = false;
+        for (int i =0;i<useAlphaTexIndexList.Count;i++)
+        {
+            if(!terrainMapArrayIndexList.Contains(useAlphaTexIndexList[i]))
+            {
+                for(int j=0;j<terrainMapArrayIndexList.Count;j++)
                 {
-                    isNeedChangeTexArray = true;
-                    break;
+                    if(terrainMapArrayIndexList[j] == -1)
+                    {
+                        terrainMapArrayIndexList[j] = useAlphaTexIndexList[i];
+                        terrainMapArray.SetPixels(matData.TerrainTexArray[useAlphaTexIndexList[i]].GetPixels(), j);
+                        terrainMapTilingList[j] = matData.TerrainMapTiling[useAlphaTexIndexList[i]];
+                        isTerrainMapArrayChange = true;
+                        break;
+                    }
                 }
+            }
+        }
+
+        if(isTerrainMapArrayChange)
+        {
+            terrainMapArray.Apply();
+        }
+
+        for (int i = 0; i < maxTerrainMapArrayCount; i++)
+        {
+            if (!useAlphaTexIndexList.Contains(terrainMapArrayIndexList[i]))
+            {
+                terrainMapArrayIndexList[i] = -1;
             }
         }
 
         for (int i = 0; i < instanceCount; i++)
         {
-            if (instanceChunks[i].isShow)
+            if (instanceChunks[i].IsShow)
             {
-                if (!isNeedChangeTexArray)
-                {
-                    alphaTexIndexList.Add(new Vector4(useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.x),
-                    useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.y),
-                    useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.z),
-                    useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.w)));
-                }
-                else
-                {
-                    alphaTexIndexList.Add(new Vector4(tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.x),
-                    tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.y),
-                    tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.z),
-                    tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.w)));
-                }
+                alphaTexIndexList.Add(new Vector4(terrainMapArrayIndexList.IndexOf((int)instanceChunks[i].alphaTexIndex.x),
+                terrainMapArrayIndexList.IndexOf((int)instanceChunks[i].alphaTexIndex.y),
+                terrainMapArrayIndexList.IndexOf((int)instanceChunks[i].alphaTexIndex.z),
+                terrainMapArrayIndexList.IndexOf((int)instanceChunks[i].alphaTexIndex.w)));
             }
+
         }
 
-        if (isNeedChangeTexArray && matData != null && matData.TerrainTexArray.Length > 0)
-        {
-            Texture2D terrainTex = matData.TerrainTexArray[0];
-            terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, tempUseAlphaTexIndexList.Count, terrainTex.format, true);
-            terrainMapTilingList = new List<Vector4>();
+        //bool isNeedChangeTexArray = false;
 
-            for(int i=0;i<tempUseAlphaTexIndexList.Count;i++)
-            {
-                int index = (int)tempUseAlphaTexIndexList[i];
-                if(index > matData.TerrainTexArray.Length - 1)
-                {
-                    continue;
-                }
+        //if(useAlphaTexIndexList.Count != tempUseAlphaTexIndexList.Count)
+        //{
+        //    isNeedChangeTexArray = true;
+        //}
+        //else
+        //{
+        //    for(int i=0;i<tempUseAlphaTexIndexList.Count;i++)
+        //    {
+        //        if(!useAlphaTexIndexList.Contains(tempUseAlphaTexIndexList[i]))
+        //        {
+        //            isNeedChangeTexArray = true;
+        //            break;
+        //        }
+        //    }
+        //}
 
-                terrainMapArray.SetPixels(matData.TerrainTexArray[index].GetPixels(), i);
-                terrainMapTilingList.Add(matData.TerrainMapTiling[index]);
-            }
-            terrainMapArray.Apply(true);
+        //for (int i = 0; i < instanceCount; i++)
+        //{
+        //    if (instanceChunks[i].IsShow)
+        //    {
+        //        if (!isNeedChangeTexArray)
+        //        {
+        //            alphaTexIndexList.Add(new Vector4(useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.x),
+        //            useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.y),
+        //            useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.z),
+        //            useAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.w)));
+        //        }
+        //        else
+        //        {
+        //            alphaTexIndexList.Add(new Vector4(tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.x),
+        //            tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.y),
+        //            tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.z),
+        //            tempUseAlphaTexIndexList.IndexOf(instanceChunks[i].alphaTexIndex.w)));
+        //        }
+        //    }
+        //}
 
-            useAlphaTexIndexList = tempUseAlphaTexIndexList;
-        }
+        //if (isNeedChangeTexArray && matData != null && matData.TerrainTexArray.Length > 0)
+        //{
+        //    Texture2D terrainTex = matData.TerrainTexArray[0];
+        //    terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, tempUseAlphaTexIndexList.Count, terrainTex.format, true);
+        //    terrainMapTilingList = new List<Vector4>();
+
+        //    for(int i=0;i<tempUseAlphaTexIndexList.Count;i++)
+        //    {
+        //        int index = (int)tempUseAlphaTexIndexList[i];
+        //        if(index > matData.TerrainTexArray.Length - 1)
+        //        {
+        //            continue;
+        //        }
+
+        //        terrainMapArray.SetPixels(matData.TerrainTexArray[index].GetPixels(), i);
+        //        terrainMapTilingList.Add(matData.TerrainMapTiling[index]);
+        //    }
+        //    terrainMapArray.Apply(true);
+
+        //    useAlphaTexIndexList = tempUseAlphaTexIndexList;
+        //}
 
     }
 

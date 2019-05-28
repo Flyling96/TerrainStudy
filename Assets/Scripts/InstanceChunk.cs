@@ -15,14 +15,52 @@ public class InstanceChunk : MonoBehaviour
 
     public Vector2 chunkSize;
 
-    public bool isShow = true;
+    bool isShow = true;
+    bool isNeedHide = false;
+    public bool IsShow
+    {
+        get
+        {
+            return isShow;
+        }
+        set
+        {
+            if(!value)
+            {
+                isNeedHide = true;
+                StartCoroutine(DelayHide());
+            }
+            else
+            {
+                if (isNeedHide)
+                {
+                    StopCoroutine("DelayHide");
+                }
+                isShow = value;
+                isNeedHide = false;
+            }
+        }
+    }
+
+    IEnumerator DelayHide()
+    {
+        yield return new WaitForSeconds(5);
+
+        isShow = false;
+        
+    }
+
+
 
     public void CacuIsBoundInCamera()
     {
         InstanceMgr.AABoundingBox aabb = new InstanceMgr.AABoundingBox();
         aabb.min = new Vector3(transform.position.x, minAndMaxHeight.x, transform.position.z);
         aabb.max = new Vector3(transform.position.x + chunkSize.x, minAndMaxHeight.y, transform.position.z + chunkSize.y);
-        isShow = InstanceMgr.instance.IsBoundInCamera(aabb, InstanceMgr.instance.mainCamera);
+        if (!isNeedHide || InstanceMgr.instance.IsBoundInCamera(aabb, InstanceMgr.instance.mainCamera))
+        {
+            IsShow = InstanceMgr.instance.IsBoundInCamera(aabb, InstanceMgr.instance.mainCamera);
+        }
     }
 
     public void ChangePos(Vector3 newPos)
@@ -36,13 +74,13 @@ public class InstanceChunk : MonoBehaviour
 
     public void CaculateNeighborVertexCount()
     {
-        neighborVertexCount.x = (neighborChunk[0] == null || !neighborChunk[0].isShow)
+        neighborVertexCount.x = (neighborChunk[0] == null || !neighborChunk[0].IsShow)
         ? selfVertexCount : neighborChunk[0].selfVertexCount;//上
-        neighborVertexCount.y = (neighborChunk[1] == null || !neighborChunk[1].isShow)
+        neighborVertexCount.y = (neighborChunk[1] == null || !neighborChunk[1].IsShow)
         ? selfVertexCount : neighborChunk[1].selfVertexCount;//下
-        neighborVertexCount.z = (neighborChunk[2] == null || !neighborChunk[2].isShow)
+        neighborVertexCount.z = (neighborChunk[2] == null || !neighborChunk[2].IsShow)
         ? selfVertexCount : neighborChunk[2].selfVertexCount;//左
-        neighborVertexCount.w = (neighborChunk[3] == null || !neighborChunk[3].isShow)
+        neighborVertexCount.w = (neighborChunk[3] == null || !neighborChunk[3].IsShow)
         ? selfVertexCount : neighborChunk[3].selfVertexCount;//右
 
         //以小的为准，防止接缝

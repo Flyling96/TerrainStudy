@@ -939,7 +939,7 @@ public class TerrainExport : ScriptableWizard
         terrainTexArray = new Texture2D[data.terrainLayers.Length];
 
         Texture2D alphaMapTexture = data.terrainLayers[0].diffuseTexture;
-        terrainMapArray = new Texture2DArray(alphaMapTexture.width, alphaMapTexture.height, data.terrainLayers.Length, alphaMapTexture.format, false);
+        terrainMapArray = new Texture2DArray(alphaMapTexture.width, alphaMapTexture.height, data.terrainLayers.Length, alphaMapTexture.format, true);
         for (int i=0;i < data.terrainLayers.Length; i++)
         {
             terrainTexArray[i] = data.terrainLayers[i].diffuseTexture;

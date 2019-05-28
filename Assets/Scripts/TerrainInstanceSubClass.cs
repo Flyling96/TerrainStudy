@@ -162,7 +162,7 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
     protected bool isInit = false;
     protected Vector3 sourcePos;
 
-    public void Init()
+    public virtual void Init()
     {
         isInit = true;
         instanceCount = instanceCountX * instanceCountZ;
