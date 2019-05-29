@@ -18,7 +18,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
     public Camera mainCamera;
     public Vector3 mainCameraPos;
     //public Vector2 chunkSize;
-    Matrix4x4 mainCameraWorldToProjection; 
+    public Matrix4x4 mainCameraWorldToProjection; 
 
     private void OnEnable()
     {
@@ -42,12 +42,12 @@ public class InstanceMgr : Singleton<InstanceMgr>
         }
     }
 
-    private void Update()
+    public void UpdateTerrainInstance()
     {
         mainCameraPos = mainCamera.transform.position;
         mainCameraWorldToProjection = mainCamera.projectionMatrix * mainCamera.worldToCameraMatrix;
 
-        for (int i= terrainInstanceList.Count-1; i>-1;i--)
+        for (int i = terrainInstanceList.Count - 1; i > -1; i--)
         {
             if (terrainInstanceList[i] == null || terrainInstanceList[i].transform == null)
             {
@@ -56,6 +56,11 @@ public class InstanceMgr : Singleton<InstanceMgr>
             }
             terrainInstanceList[i].Draw();
         }
+    }
+
+    private void Update()
+    {
+        UpdateTerrainInstance();
     }
 
     public int CaculateLodLevel(Vector3 instancePos, Vector2 chunkMinAndMaxHeight)
@@ -269,7 +274,8 @@ public class InstanceMgr : Singleton<InstanceMgr>
     }
 
     //视锥检测相关
-    public bool IsBoundInCamera(AABoundingBox aabb, Camera camera)
+    //精确进行视锥检测
+    public bool IsBoundInCameraByBox(AABoundingBox aabb, Camera camera)
     {
         if(camera == null)
         {
@@ -285,7 +291,8 @@ public class InstanceMgr : Singleton<InstanceMgr>
                 ((i & 0x02) == 0 ? aabb.min : aabb.max).y,
                 ((i & 0x04) == 0 ? aabb.min : aabb.max).z,1);
 
-            mask &= ComputeProjectionMask(worldPos, mainCameraWorldToProjection);
+            //mask &= ComputeProjectionMask(worldPos, mainCameraWorldToProjection);
+            mask &= ComputeProjectionMask(worldPos,  camera.projectionMatrix * camera.worldToCameraMatrix);
         }
 
         //存在AABB八个顶点在一个视锥体面之外
@@ -307,6 +314,64 @@ public class InstanceMgr : Singleton<InstanceMgr>
         if (pos.z > pos.w) mask |= 0x20;
         return mask;
     }
+
+
+    public struct Sphere
+    {
+        public Vector3 spherePoint;
+        public float radius;
+    }
+
+    public struct Cone
+    {
+        public Vector3 coneVertex;
+        public Vector3 coneBottomSpherePoint;
+        public float radius;
+    }
+
+    //粗略进行视锥检测
+    public bool IsBoundInCameraBySphere(AABoundingBox aabb,Camera camera)
+    {
+        Sphere sphere = new Sphere
+        {
+            spherePoint = (new float3(aabb.min) + new float3(aabb.max)) / 2,
+            radius = Vector3.Distance(aabb.max, aabb.min) / 2
+        };
+
+        float farY = camera.farClipPlane * Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        float farX = Screen.width / Screen.height * farY;
+        float farDis = Mathf.Sqrt(farX * farX + farY * farY);
+
+        Cone cone = new Cone
+        {
+            coneVertex = camera.transform.position,
+            coneBottomSpherePoint = camera.transform.position + camera.transform.forward * camera.farClipPlane,
+            radius = farDis
+        };
+
+        return SphereConeCross(sphere, cone);
+    }
+
+    //用圆锥体和球体进行相交检测来粗略判断是否在视锥内
+    //视锥用圆锥体进行粗略模拟
+    //aabb包围盒用球体来进行粗略模拟
+    public bool SphereConeCross(Sphere sphere,Cone cone)
+    {
+        Vector3 bottomDir =  cone.coneBottomSpherePoint - cone.coneVertex;
+        float height = Vector3.Distance(bottomDir, Vector3.zero);
+        bottomDir = bottomDir.normalized;
+        float length = Vector3.Dot(sphere.spherePoint - cone.coneVertex, bottomDir);
+        if (Vector3.Distance(cone.coneVertex, sphere.spherePoint) < sphere.radius) return true;
+        if (length < 0 || length > height) return false;
+
+        Vector3 coneSpherePoint = cone.coneVertex + bottomDir * length;
+        float coneRadius = cone.radius / height * length;
+
+        return Vector3.Distance(coneSpherePoint, sphere.spherePoint) < (sphere.radius + coneRadius);
+
+    }
+
+
     #endregion
 
 }

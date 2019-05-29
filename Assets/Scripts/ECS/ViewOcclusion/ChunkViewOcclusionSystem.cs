@@ -38,7 +38,7 @@ namespace TerrainECS
                     {
                         minAndMaxHeight = chunkViewOcclusion.minAndMaxHeight,
                         chunkSize = chunkViewOcclusion.chunkSize,
-                        isShow = InstanceMgr.instance.IsBoundInCamera(aabb, InstanceMgr.instance.mainCamera)
+                        isShow = InstanceMgr.instance.IsBoundInCameraByBox(aabb, InstanceMgr.instance.mainCamera)
                     };
 
                 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Unity.Mathematics;
 
 [ExecuteInEditMode]
 public class TerrainInstance : TerrainInstanceSubClass
@@ -51,6 +52,11 @@ public class TerrainInstance : TerrainInstanceSubClass
         }
     }
 
+    private void Start()
+    {
+        InitComputeBuffer();
+    }
+
     void UpdateMat()
     {
 
@@ -96,7 +102,10 @@ public class TerrainInstance : TerrainInstanceSubClass
 
         UpdateTRS();
         UpdateLodLevel();
-        ViewOcclusion();
+
+        //ViewOcclusionByCPU();
+        ViewOcclusionByGPU();
+        OcclusionUpdateData();
 
         if (showChunkCount < 1)
         {
@@ -109,6 +118,7 @@ public class TerrainInstance : TerrainInstanceSubClass
         {
             DrawInstance(i);
         }
+
 
     }
 
@@ -142,8 +152,17 @@ public class TerrainInstance : TerrainInstanceSubClass
 
     const int maxTerrainMapArrayCount = 10;
 
+
     //cpu剔除块
-    void ViewOcclusion()
+    void ViewOcclusionByCPU()
+    {
+        for(int i=0;i<instanceChunks.Length;i++)
+        {
+            instanceChunks[i].CacuIsBoundInCamera();
+        }
+    }
+
+    void OcclusionUpdateData()
     {
         startEndUVList.Clear();
         alphaTexIndexList.Clear();
@@ -309,6 +328,57 @@ public class TerrainInstance : TerrainInstanceSubClass
 
         //    useAlphaTexIndexList = tempUseAlphaTexIndexList;
         //}
+
+    }
+
+    ComputeBuffer inputBuffer;
+    ComputeBuffer resultBuffer;
+    ComputeShader ViewOccusionCS;
+
+    InstanceMgr.AABoundingBox[] aabbs = null;
+    float[] isCrossBuffers = null;
+
+    int kernel = -1;
+    void InitComputeBuffer()
+    {
+        inputBuffer = new ComputeBuffer(instanceChunks.Length ,24);
+        resultBuffer = new ComputeBuffer(instanceChunks.Length, 4);
+
+        ViewOccusionCS = RenderPipeline.instance.TerrainViewOccusionCS;
+
+        if (ViewOccusionCS == null) return;
+
+        kernel = ViewOccusionCS.FindKernel("CSMain");
+
+        isCrossBuffers = new float[instanceChunks.Length];
+        aabbs = new InstanceMgr.AABoundingBox[instanceChunks.Length];
+
+        for (int i=0;i<instanceChunks.Length;i++)
+        {
+            aabbs[i] = instanceChunks[i].GetAABB();
+        }
+
+        inputBuffer.SetData(aabbs);
+    }
+
+    //gpu剔除块
+    void ViewOcclusionByGPU()
+    {
+        if (ViewOccusionCS == null || resultBuffer == null || kernel == -1) return;
+
+        ViewOccusionCS.SetMatrix("cameraWorldToProjectMat", InstanceMgr.instance.mainCameraWorldToProjection);
+
+        ViewOccusionCS.SetBuffer(kernel, "aabbArray", inputBuffer);
+        ViewOccusionCS.SetBuffer(kernel, "isCrossBuffers", resultBuffer);
+
+        ViewOccusionCS.Dispatch(kernel, 4, 4, 1);
+
+        resultBuffer.GetData(isCrossBuffers);
+
+        for(int i=0;i<instanceChunks.Length;i++)
+        {
+            instanceChunks[i].IsShow = isCrossBuffers[i] == 1;
+        }
 
     }
 

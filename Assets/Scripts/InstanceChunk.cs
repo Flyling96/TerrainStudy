@@ -25,20 +25,21 @@ public class InstanceChunk : MonoBehaviour
         }
         set
         {
-            if(!value)
-            {
-                isNeedHide = true;
-                StartCoroutine(DelayHide());
-            }
-            else
-            {
-                if (isNeedHide)
-                {
-                    StopCoroutine("DelayHide");
-                }
-                isShow = value;
-                isNeedHide = false;
-            }
+            isShow = value;
+            //if (!value)
+            //{
+            //    isNeedHide = true;
+            //    StartCoroutine(DelayHide());
+            //}
+            //else
+            //{
+            //    if (isNeedHide)
+            //    {
+            //        StopCoroutine("DelayHide");
+            //    }
+            //    isShow = value;
+            //    isNeedHide = false;
+            //}
         }
     }
 
@@ -50,16 +51,20 @@ public class InstanceChunk : MonoBehaviour
         
     }
 
-
-
-    public void CacuIsBoundInCamera()
+    public InstanceMgr.AABoundingBox GetAABB()
     {
         InstanceMgr.AABoundingBox aabb = new InstanceMgr.AABoundingBox();
         aabb.min = new Vector3(transform.position.x, minAndMaxHeight.x, transform.position.z);
         aabb.max = new Vector3(transform.position.x + chunkSize.x, minAndMaxHeight.y, transform.position.z + chunkSize.y);
-        if (!isNeedHide || InstanceMgr.instance.IsBoundInCamera(aabb, InstanceMgr.instance.mainCamera))
+        return aabb;
+    }
+
+    public void CacuIsBoundInCamera()
+    {
+        InstanceMgr.AABoundingBox aabb = GetAABB();
+        if (!isNeedHide || InstanceMgr.instance.IsBoundInCameraBySphere(aabb, InstanceMgr.instance.mainCamera))
         {
-            IsShow = InstanceMgr.instance.IsBoundInCamera(aabb, InstanceMgr.instance.mainCamera);
+            IsShow = InstanceMgr.instance.IsBoundInCameraByBox(aabb, InstanceMgr.instance.mainCamera);
         }
     }
 

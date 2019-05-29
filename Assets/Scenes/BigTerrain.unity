@@ -137,7 +137,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 4294967295
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!154 &1476515866
 TerrainCollider:
   m_ObjectHideFlags: 0
@@ -230,7 +230,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainCamera: {fileID: 1559969982}
-  mainCameraPos: {x: 758.3202, y: 5190.8555, z: -462.63846}
+  mainCameraPos: {x: 9757.476, y: 6525.324, z: 4559.5527}
 --- !u!4 &1519274555
 Transform:
   m_ObjectHideFlags: 0
@@ -256,6 +256,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: BigMap001_Instance
+      objectReference: {fileID: 0}
+    - target: {fileID: 5894886964866580023, guid: 7e1278aa9f6ebe34e9a2be03987426f0,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1993544163532274433, guid: 7e1278aa9f6ebe34e9a2be03987426f0,
         type: 3}
@@ -326,6 +331,7 @@ GameObject:
   - component: {fileID: 1559969982}
   - component: {fileID: 1559969981}
   - component: {fileID: 1559969984}
+  - component: {fileID: 1559969985}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -391,8 +397,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1559969980}
-  m_LocalRotation: {x: -0.3025931, y: -0.32027778, z: 0.1087633, w: -0.8910837}
-  m_LocalPosition: {x: 758.3202, y: 5190.8555, z: -462.63846}
+  m_LocalRotation: {x: 0.22251794, y: -0.29640913, z: 0.0713641, w: 0.92603165}
+  m_LocalPosition: {x: 9757.476, y: 6525.324, z: 4559.5527}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -410,6 +416,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ff2b73cd579f094da31b41d7ff5310a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1559969985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1559969980}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5baef406388e31479d7f15557b6f990, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TerrainViewOccusionCS: {fileID: 7200000, guid: da8423fff0ec7c045b02c1972dc13da8,
+    type: 3}
 --- !u!1 &1828461199
 GameObject:
   m_ObjectHideFlags: 0
@@ -483,7 +503,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: -0.04068946, y: NaN, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
