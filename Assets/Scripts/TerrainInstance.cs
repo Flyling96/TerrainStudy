@@ -174,7 +174,7 @@ public class TerrainInstance : TerrainInstanceSubClass
 
         for(int i=0;i<instanceCount; i++)
         {
-            instanceChunks[i].CacuIsBoundInCamera();
+            //instanceChunks[i].CacuIsBoundInCamera();
             if (instanceChunks[i].IsShow)
             {
                 showChunkCount++;
@@ -333,9 +333,11 @@ public class TerrainInstance : TerrainInstanceSubClass
 
     ComputeBuffer inputBuffer;
     ComputeBuffer resultBuffer;
+    //ComputeBuffer debugBuffer;
     ComputeShader ViewOccusionCS;
 
     InstanceMgr.AABoundingBox[] aabbs = null;
+    //ProjectVertex[] prejectVertexs = null;
     float[] isCrossBuffers = null;
 
     int kernel = -1;
@@ -343,6 +345,7 @@ public class TerrainInstance : TerrainInstanceSubClass
     {
         inputBuffer = new ComputeBuffer(instanceChunks.Length ,24);
         resultBuffer = new ComputeBuffer(instanceChunks.Length, 4);
+        //debugBuffer = new ComputeBuffer(instanceChunks.Length,96);
 
         ViewOccusionCS = RenderPipeline.instance.TerrainViewOccusionCS;
 
@@ -352,6 +355,7 @@ public class TerrainInstance : TerrainInstanceSubClass
 
         isCrossBuffers = new float[instanceChunks.Length];
         aabbs = new InstanceMgr.AABoundingBox[instanceChunks.Length];
+        //prejectVertexs = new ProjectVertex[instanceChunks.Length];
 
         for (int i=0;i<instanceChunks.Length;i++)
         {
@@ -360,6 +364,18 @@ public class TerrainInstance : TerrainInstanceSubClass
 
         inputBuffer.SetData(aabbs);
     }
+
+    //public struct ProjectVertex
+    //{
+    //    float3 v0;
+    //    float3 v1;
+    //    float3 v2;
+    //    float3 v3;
+    //    float3 v4;
+    //    float3 v5;
+    //    float3 v6;
+    //    float3 v7;
+    //};
 
     //gpu剔除块
     void ViewOcclusionByGPU()
@@ -370,16 +386,27 @@ public class TerrainInstance : TerrainInstanceSubClass
 
         ViewOccusionCS.SetBuffer(kernel, "aabbArray", inputBuffer);
         ViewOccusionCS.SetBuffer(kernel, "isCrossBuffers", resultBuffer);
+        //ViewOccusionCS.SetBuffer(kernel, "projectVertexs", debugBuffer);
 
-        ViewOccusionCS.Dispatch(kernel, 4, 4, 1);
+        ViewOccusionCS.Dispatch(kernel, 16, 16, 1);
 
         resultBuffer.GetData(isCrossBuffers);
+        //debugBuffer.GetData(prejectVertexs);
 
-        for(int i=0;i<instanceChunks.Length;i++)
+
+        for (int i=0;i<instanceChunks.Length;i++)
         {
             instanceChunks[i].IsShow = isCrossBuffers[i] == 1;
         }
 
+    }
+
+    private void OnDestroy()
+    {
+        if (resultBuffer != null)
+        {
+            resultBuffer.Release();
+        }
     }
 
 }

@@ -62,7 +62,7 @@ public class InstanceChunk : MonoBehaviour
     public void CacuIsBoundInCamera()
     {
         InstanceMgr.AABoundingBox aabb = GetAABB();
-        if (!isNeedHide || InstanceMgr.instance.IsBoundInCameraBySphere(aabb, InstanceMgr.instance.mainCamera))
+        if (!isNeedHide || InstanceMgr.instance.IsBoundInCameraByBox(aabb, InstanceMgr.instance.mainCamera))
         {
             IsShow = InstanceMgr.instance.IsBoundInCameraByBox(aabb, InstanceMgr.instance.mainCamera);
         }

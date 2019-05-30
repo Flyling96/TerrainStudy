@@ -5,9 +5,9 @@
 // with cs.SetTexture
 
 
-#define thread_group_x 4
+#define thread_group_x 16
 
-#define thread_group_y 4
+#define thread_group_y 16
 
 #define thread_x 8
 
@@ -21,6 +21,19 @@ struct AABB
 	float3 max;
 };
 
+//struct ProjectVertex
+//{
+//	float3 v0;
+//	float3 v1;
+//	float3 v2;
+//	float3 v3;
+//	float3 v4;
+//	float3 v5;
+//	float3 v6;
+//	float3 v7;
+//};
+
+//RWStructuredBuffer<ProjectVertex> projectVertexs;
 RWStructuredBuffer<AABB> aabbArray;
 RWStructuredBuffer<float> isCrossBuffers;
 
@@ -39,12 +52,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float4 v2 = float4(max.x, min.yz, 1);
 	float4 v3 = float4(max.x, min.y, max.z,1);
 	float4 v4 = float4(min.x, max.y, min.z, 1);
-	float4 v5 = float4(min.z, max.yz, 1);
+	float4 v5 = float4(min.x, max.yz, 1);
 	float4 v6 = float4(max.xy, min.z, 1);
 	float4 v7 = float4(max.xyz, 1);
 
 
-	v0 = mul(v0,cameraWorldToProjectMat);
+	v0 = mul(cameraWorldToProjectMat, v0);
 	v0 = v0 / v0.w;
 	v1 = mul(cameraWorldToProjectMat, v1);
 	v1 = v1 / v1.w;
@@ -61,14 +74,31 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	v7 = mul(cameraWorldToProjectMat, v7);
 	v7 = v7 / v7.w;
 
-	isCrossBuffers[index] = 1 - (1 - step(v0.x, 1) * step(-1, v0.x) * step(v0.y, 1) * step(-1, v0.y) * step(v0.z, 1) * step(-1, v0.z))*
-		(1 - step(v1.x, 1) * step(-1, v1.x) * step(v1.y, 1) * step(-1, v1.y) * step(v1.z, 1) * step(-1, v1.z)) *
-		(1 - step(v2.x, 1) * step(-1, v2.x) * step(v2.y, 1) * step(-1, v2.y) * step(v2.z, 1) * step(-1, v2.z)) *
-		(1 - step(v3.x, 1) * step(-1, v3.x) * step(v3.y, 1) * step(-1, v3.y) * step(v3.z, 1) * step(-1, v3.z)) *
-		(1 - step(v4.x, 1) * step(-1, v4.x) * step(v4.y, 1) * step(-1, v4.y) * step(v4.z, 1) * step(-1, v4.z)) *
-		(1 - step(v5.x, 1) * step(-1, v5.x) * step(v5.y, 1) * step(-1, v5.y) * step(v5.z, 1) * step(-1, v5.z)) *
-		(1 - step(v6.x, 1) * step(-1, v6.x) * step(v6.y, 1) * step(-1, v6.y) * step(v6.z, 1) * step(-1, v6.z)) *
-		(1 - step(v7.x, 1) * step(-1, v7.x) * step(v7.y, 1) * step(-1, v7.y) * step(v7.z, 1) * step(-1, v7.z));
+	//isCrossBuffers[index] = 1 - (1 - step(v0.x, 1) * step(-1, v0.x) * step(v0.y, 1) * step(-1, v0.y) * step(v0.z, 1) * step(-1, v0.z))*
+	//	(1 - step(v1.x, 1) * step(-1, v1.x) * step(v1.y, 1) * step(-1, v1.y) * step(v1.z, 1) * step(-1, v1.z)) *
+	//	(1 - step(v2.x, 1) * step(-1, v2.x) * step(v2.y, 1) * step(-1, v2.y) * step(v2.z, 1) * step(-1, v2.z)) *
+	//	(1 - step(v3.x, 1) * step(-1, v3.x) * step(v3.y, 1) * step(-1, v3.y) * step(v3.z, 1) * step(-1, v3.z)) *
+	//	(1 - step(v4.x, 1) * step(-1, v4.x) * step(v4.y, 1) * step(-1, v4.y) * step(v4.z, 1) * step(-1, v4.z)) *
+	//	(1 - step(v5.x, 1) * step(-1, v5.x) * step(v5.y, 1) * step(-1, v5.y) * step(v5.z, 1) * step(-1, v5.z)) *
+	//	(1 - step(v6.x, 1) * step(-1, v6.x) * step(v6.y, 1) * step(-1, v6.y) * step(v6.z, 1) * step(-1, v6.z)) *
+	//	(1 - step(v7.x, 1) * step(-1, v7.x) * step(v7.y, 1) * step(-1, v7.y) * step(v7.z, 1) * step(-1, v7.z));
 
+	//存在八个顶点都在某个视锥面之外，则视锥与AABB不相交
+	isCrossBuffers[index] =
+		(1 - (1 - step(v0.x, 1))*(1 - step(v1.x, 1))*(1 - step(v2.x, 1))*(1 - step(v3.x, 1))*(1 - step(v4.x, 1))*(1 - step(v5.x, 1))*(1 - step(v6.x, 1))*(1 - step(v7.x, 1))) *
+		(1 - (1 - step(-1, v0.x))*(1 - step(-1, v1.x))*(1 - step(-1, v2.x))*(1 - step(-1, v3.x))*(1 - step(-1, v4.x))*(1 - step(-1, v5.x))*(1 - step(-1, v6.x))*(1 - step(-1, v7.x))) *
+		(1 - (1 - step(v0.y, 1))*(1 - step(v1.y, 1))*(1 - step(v2.y, 1))*(1 - step(v3.y, 1))*(1 - step(v4.y, 1))*(1 - step(v5.y, 1))*(1 - step(v6.y, 1))*(1 - step(v7.y, 1))) *
+		(1 - (1 - step(-1, v0.y))*(1 - step(-1, v1.y))*(1 - step(-1, v2.y))*(1 - step(-1, v3.y))*(1 - step(-1, v4.y))*(1 - step(-1, v5.y))*(1 - step(-1, v6.y))*(1 - step(-1, v7.y))) *
+		(1 - (1 - step(v0.z, 1))*(1 - step(v1.z, 1))*(1 - step(v2.z, 1))*(1 - step(v3.z, 1))*(1 - step(v4.z, 1))*(1 - step(v5.z, 1))*(1 - step(v6.z, 1))*(1 - step(v7.z, 1))) *
+		(1 - (1 - step(-1, v0.z))*(1 - step(-1, v1.z))*(1 - step(-1, v2.z))*(1 - step(-1, v3.z))*(1 - step(-1, v4.z))*(1 - step(-1, v5.z))*(1 - step(-1, v6.z))*(1 - step(-1, v7.z)));
+
+	//projectVertexs[index].v0 = v0;
+	//projectVertexs[index].v1 = v1;
+	//projectVertexs[index].v2 = v2;
+	//projectVertexs[index].v3 = v3;
+	//projectVertexs[index].v4 = v4;
+	//projectVertexs[index].v5 = v5;
+	//projectVertexs[index].v6 = v6;
+	//projectVertexs[index].v7 = v7;
 
 }
