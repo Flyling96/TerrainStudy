@@ -26,19 +26,26 @@ public class InstanceChunk : MonoBehaviour
         set
         {
             isShow = value;
-            //if (!value)
+            //if (Application.isPlaying)
             //{
-            //    isNeedHide = true;
-            //    StartCoroutine(DelayHide());
+            //    if (!value && !isNeedHide)
+            //    {
+            //        isNeedHide = true;
+            //        StartCoroutine(DelayHide());
+            //    }
+            //    else
+            //    {
+            //        if (isNeedHide)
+            //        {
+            //            StopCoroutine("DelayHide");
+            //        }
+            //        isShow = value;
+            //        isNeedHide = false;
+            //    }
             //}
             //else
             //{
-            //    if (isNeedHide)
-            //    {
-            //        StopCoroutine("DelayHide");
-            //    }
             //    isShow = value;
-            //    isNeedHide = false;
             //}
         }
     }

@@ -70,9 +70,11 @@ public class TerrainInstance : TerrainInstanceSubClass
 
     void DrawInstance(int index)
     {
+        if (prop == null) return;
+
         int maxListCount = showChunkCount > (index+1) * 1023 ? 1023 : showChunkCount - index * 1023;
 
-        prop = new MaterialPropertyBlock();
+        prop.Clear();
 
         prop.SetVectorArray("_StartEndUV", startEndUVList.GetRange(index * 1023, maxListCount).ToArray());
         prop.SetVectorArray("_AlphaTexIndexs", alphaTexIndexList.GetRange(index * 1023, maxListCount).ToArray());
@@ -393,7 +395,6 @@ public class TerrainInstance : TerrainInstanceSubClass
         resultBuffer.GetData(isCrossBuffers);
         //debugBuffer.GetData(prejectVertexs);
 
-
         for (int i=0;i<instanceChunks.Length;i++)
         {
             instanceChunks[i].IsShow = isCrossBuffers[i] == 1;
@@ -406,6 +407,11 @@ public class TerrainInstance : TerrainInstanceSubClass
         if (resultBuffer != null)
         {
             resultBuffer.Release();
+        }
+
+        if(inputBuffer!=null)
+        {
+            inputBuffer.Release();
         }
     }
 

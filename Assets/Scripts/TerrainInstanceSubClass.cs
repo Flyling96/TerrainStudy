@@ -165,6 +165,7 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
     public virtual void Init()
     {
         isInit = true;
+        prop = new MaterialPropertyBlock(); 
         instanceCount = instanceCountX * instanceCountZ;
         InitMat();
         sourcePos = transform.position;
