@@ -211,6 +211,14 @@
 					return color;
 				}
 
+				float GetMipMapLevel(float2 uv) // in texel units
+				{
+					float2  dx = ddx(uv);
+					float2  dy = ddy(uv);
+					float maxdd = max(dot(dx, dx), dot(dy, dy));
+					return 0.5 * log2(maxdd);
+				}
+
 
 				float4 frag(v2f i) : SV_Target
 				{
@@ -218,9 +226,25 @@
 					UNITY_SETUP_INSTANCE_ID(i);
 #ifdef UNITY_INSTANCING_ENABLED
 					float4 alphaTexIndexs = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _AlphaTexIndexs);
+					//float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
 #else
 					float4 alphaTexIndexs = _AlphaTexIndexs;
+					//float4 startEndUV = _StartEndUV;
 #endif
+					//float2 uv;
+					//uv.x = lerp(startEndUV.x, startEndUV.z, i.uv.x);
+					//uv.y = lerp(startEndUV.y, startEndUV.w, i.uv.y);
+
+					//float mipmapLevel = GetMipMapLevel(uv);
+
+					//float2 chunkPixelCount = _ChunkPixelCount.zw / pow(2, mipmapLevel);
+
+					//float2 alphaLimit = float2(0.5f / chunkPixelCount.x, 0.5f / chunkPixelCount.y);
+					//uv.x = uv.x * step(alphaLimit.x, uv.x) + alphaLimit.x * (1 - step(alphaLimit.x, uv.x));
+					//uv.x = uv.x * step(uv.x, 1 - alphaLimit.x) + (1 - alphaLimit.x) * (1 - step(uv.x, 1 - alphaLimit.x));
+					//uv.y = uv.y * step(alphaLimit.y, uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, uv.y));
+					//uv.y = uv.y * step(uv.y, 1 - alphaLimit.y) + (1 - alphaLimit.y) * (1 - step(uv.y, 1 - alphaLimit.y));
+
 					float4 col = GetAlphaColor(alphaTexIndexs,i.uv);
 					return col;
 				}

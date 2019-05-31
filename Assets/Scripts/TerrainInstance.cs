@@ -150,6 +150,7 @@ public class TerrainInstance : TerrainInstanceSubClass
     List<Matrix4x4> trsList = new List<Matrix4x4>();
     List<int> useAlphaTexIndexList = new List<int>();
     List<int> terrainMapArrayIndexList = new List<int>();
+
     int showChunkCount = 0;
 
     const int maxTerrainMapArrayCount = 10;
@@ -227,6 +228,7 @@ public class TerrainInstance : TerrainInstanceSubClass
         }
 
         bool isTerrainMapArrayChange = false;
+
         for (int i =0;i<useAlphaTexIndexList.Count;i++)
         {
             if(!terrainMapArrayIndexList.Contains(useAlphaTexIndexList[i]))
@@ -250,11 +252,15 @@ public class TerrainInstance : TerrainInstanceSubClass
             terrainMapArray.Apply();
         }
 
-        for (int i = 0; i < maxTerrainMapArrayCount; i++)
+        //当TerrainMapArray中没有空位了，清除一下没有用到的Texture
+        if (!terrainMapArrayIndexList.Contains(-1))
         {
-            if (!useAlphaTexIndexList.Contains(terrainMapArrayIndexList[i]))
+            for (int i = 0; i < maxTerrainMapArrayCount; i++)
             {
-                terrainMapArrayIndexList[i] = -1;
+                if (!useAlphaTexIndexList.Contains(terrainMapArrayIndexList[i]))
+                {
+                    terrainMapArrayIndexList[i] = -1;
+                }
             }
         }
 
@@ -379,6 +385,7 @@ public class TerrainInstance : TerrainInstanceSubClass
     //    float3 v7;
     //};
 
+
     //gpu剔除块
     void ViewOcclusionByGPU()
     {
@@ -401,6 +408,7 @@ public class TerrainInstance : TerrainInstanceSubClass
         }
 
     }
+
 
     private void OnDestroy()
     {
