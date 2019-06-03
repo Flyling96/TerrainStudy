@@ -13,7 +13,7 @@ public class TerrainInstance : TerrainInstanceSubClass
     public override void InitData(Mesh tempMesh, int countX, int countZ, int tChunkWidth, int tChunkLength, Quaternion rotation, Vector4[] tAlphaTexIndexs, Vector2[] tMinAndMaxHeight, Vector4[] startEndUVs)
     {
         base.InitData(tempMesh, countX, countZ, tChunkWidth, tChunkLength, rotation, tAlphaTexIndexs, tMinAndMaxHeight, startEndUVs);
-        instanceChunks = new InstanceChunk[instanceCount];
+        instanceChunks = new InstanceChunk[chunkCount];
         int index = 0;
         Matrix4x4 matr;
         Vector3 chunkPos;
@@ -24,6 +24,7 @@ public class TerrainInstance : TerrainInstanceSubClass
             {
                 index = j * countX + i;
                 instanceChunks[index] = instanceChunkGos[index].AddComponent<InstanceChunk>();
+                instanceChunks[index].chunkIndex = new Vector2(i, j);
                 instanceChunks[index].startEndUV = startEndUVs[index];
                 instanceChunks[index].alphaTexIndex = tAlphaTexIndexs[index];
                 instanceChunks[index].minAndMaxHeight = tMinAndMaxHeight[index] * matData.MaxHeight;
@@ -55,6 +56,7 @@ public class TerrainInstance : TerrainInstanceSubClass
     private void Start()
     {
         InitComputeBuffer();
+        InitChunkCollider();
     }
 
     void UpdateMat()
@@ -88,7 +90,7 @@ public class TerrainInstance : TerrainInstanceSubClass
     void UpdateLodLevel()
     {
         Vector3 instancePos;
-        for(int i=0;i<instanceCount;i++)
+        for(int i=0;i<chunkCount;i++)
         {
             instancePos = instanceChunks[i].transform.position;
             int lodLevel = InstanceMgr.instance.CaculateLodLevel(instancePos, instanceChunks[i].minAndMaxHeight);
@@ -100,7 +102,7 @@ public class TerrainInstance : TerrainInstanceSubClass
     public override void Draw()
     {
         base.Draw();
-        if (instanceCount == 0 || mesh == null ||!isInit) return;
+        if (chunkCount == 0 || mesh == null ||!isInit) return;
 
         UpdateTRS();
         UpdateLodLevel();
@@ -130,7 +132,7 @@ public class TerrainInstance : TerrainInstanceSubClass
         //位移
         if (transform.position != sourcePos)
         {
-            for (int i = 0; i < instanceCount; i++)
+            for (int i = 0; i < chunkCount; i++)
             {
                 tempPos = new Vector3(instanceChunks[i].trsMatrix.m03, instanceChunks[i].trsMatrix.m13, instanceChunks[i].trsMatrix.m23);
                 tempPos += transform.position - sourcePos;
@@ -175,7 +177,7 @@ public class TerrainInstance : TerrainInstanceSubClass
         useAlphaTexIndexList.Clear();
         showChunkCount = 0;
 
-        for(int i=0;i<instanceCount; i++)
+        for(int i=0;i<chunkCount; i++)
         {
             //instanceChunks[i].CacuIsBoundInCamera();
             if (instanceChunks[i].IsShow)
@@ -264,7 +266,7 @@ public class TerrainInstance : TerrainInstanceSubClass
             }
         }
 
-        for (int i = 0; i < instanceCount; i++)
+        for (int i = 0; i < chunkCount; i++)
         {
             if (instanceChunks[i].IsShow)
             {
@@ -355,7 +357,7 @@ public class TerrainInstance : TerrainInstanceSubClass
         resultBuffer = new ComputeBuffer(instanceChunks.Length, 4);
         //debugBuffer = new ComputeBuffer(instanceChunks.Length,96);
 
-        ViewOccusionCS = RenderPipeline.instance.TerrainViewOccusionCS;
+        ViewOccusionCS = RenderPipeline.instance.terrainViewOccusionCS;
 
         if (ViewOccusionCS == null) return;
 
@@ -371,6 +373,25 @@ public class TerrainInstance : TerrainInstanceSubClass
         }
 
         inputBuffer.SetData(aabbs);
+    }
+
+    void InitChunkCollider()
+    {
+        Texture2D heightMap = matData.HeightNormalTex;
+
+        float pixelVertexProX = (float)heightMap.width / (CustomTerrain.TerrainDataMgr.instance.maxLodVertexCount.x * chunkCountX + 1);
+        float pixelVertexProZ = (float)heightMap.height / (CustomTerrain.TerrainDataMgr.instance.maxLodVertexCount.y * chunkCountZ + 1);
+        Vector2 pixelVertexPro = new Vector2(pixelVertexProX, pixelVertexProZ);
+
+
+        for (int j=0;j<chunkCountZ;j++)
+        {
+            for(int i =0;i<chunkCountX;i++)
+            {
+                int index = chunkCountX * j + i;
+                instanceChunks[index].InitCollider(heightMap, matData.MaxHeight ,pixelVertexPro);
+            }
+        }
     }
 
     //public struct ProjectVertex

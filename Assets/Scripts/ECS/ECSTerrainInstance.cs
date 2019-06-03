@@ -146,7 +146,7 @@ namespace TerrainECS
 
         public override void Draw()
         {
-            if (instanceCount == 0 || mesh == null || !isInit) return;
+            if (chunkCount == 0 || mesh == null || !isInit) return;
             if (!Application.isPlaying) return;
 
             base.Draw();

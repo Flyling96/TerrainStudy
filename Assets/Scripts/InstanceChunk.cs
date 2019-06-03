@@ -1,9 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using CustomTerrain;
 
 public class InstanceChunk : MonoBehaviour
 {
+    public Vector2 chunkIndex;         //块在instance中的行列
+
     public Vector4 startEndUV;          //块相对与Instance开始和结束的
     public Vector2 minAndMaxHeight;     //最小和最大的高度
     public Vector4 alphaTexIndex;       //地形贴图编号
@@ -13,10 +16,78 @@ public class InstanceChunk : MonoBehaviour
     public Vector4 neighborVertexCount; //邻居一条边顶点数
     public InstanceChunk[] neighborChunk; //上下左右的块
 
+    public MeshCollider meshCollider; //地形块的碰撞体
+
     public Vector2 chunkSize;
 
     bool isShow = true;
     bool isNeedHide = false;
+
+    float DecodeHeight(Vector2 heightXY)
+    {
+        Vector2 decodeDot = new Vector2(1.0f, 1.0f / 255.0f);
+        return Vector2.Dot(heightXY, decodeDot);
+    }
+
+    public void InitCollider(Texture2D heightMap,float maxHeight,Vector2 pixelVertexPro)
+    {
+        int column = (int)TerrainDataMgr.instance.maxLodVertexCount.x;
+        int row = (int)TerrainDataMgr.instance.maxLodVertexCount.y;
+
+        int startVertexCountX = (int)chunkIndex.x * column;
+        int startVertexCountZ = (int)chunkIndex.y * row;
+
+        float spaceWidth = chunkSize.x / column;
+        float spaceLength = chunkSize.y / row;
+
+        int numberOfVertices = (row + 1) * (column + 1);
+        int numberOfIndex = row * column * 4;
+        Vector3[] vertices = new Vector3[numberOfVertices];
+        int[] indices = new int[numberOfIndex];
+
+        for (int r = 0; r < row + 1; r++)
+        {
+            int nowVertexCountZ = startVertexCountZ + r + 1;
+            for (int c = 0; c < column + 1; c++)
+            {
+                int nowVertexCountX = startVertexCountX + c + 1;
+                int pixelX = (int)((nowVertexCountX - 1) * pixelVertexPro.x);
+                int pixelZ = (int)((nowVertexCountZ - 1) * pixelVertexPro.y);
+                Color color = heightMap.GetPixel(pixelX, pixelZ);
+                float height = DecodeHeight(new Vector2(color.r, color.g)) * maxHeight;
+                vertices[r * (column + 1) + c] = new Vector3(c * spaceWidth, height, r * spaceLength);
+            }
+        }
+
+        int index;
+        int line;
+        for (int r = 0; r < row; r++)
+        {
+            for (int c = 0; c < column; c++)
+            {
+                index = 4 * (r * column + c);
+                line = (column + 1);
+                indices[index] = (r + 1) * line + c;
+                indices[index + 1] = (r + 1) * line + c + 1;
+                indices[index + 2] = r * line + c + 1;
+                indices[index + 3] = r * line + c;
+            }
+        }
+
+        Mesh m_mesh = new Mesh();
+        m_mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        m_mesh.vertices = vertices;
+        m_mesh.SetIndices(indices, MeshTopology.Quads, 0);
+
+        meshCollider = gameObject.GetComponent<MeshCollider>();
+        if(meshCollider == null)
+        {
+            meshCollider = gameObject.AddComponent<MeshCollider>();
+        }
+        meshCollider.sharedMesh = m_mesh;
+
+    }
+
     public bool IsShow
     {
         get
@@ -50,6 +121,7 @@ public class InstanceChunk : MonoBehaviour
         }
     }
 
+    //延迟消失
     IEnumerator DelayHide()
     {
         yield return new WaitForSeconds(5);

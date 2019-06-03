@@ -94,9 +94,9 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
     [SerializeField]
     protected Mesh mesh;
     [SerializeField]
-    protected int instanceCountX = 0;
+    protected int chunkCountX = 0;
     [SerializeField]
-    protected int instanceCountZ = 0;
+    protected int chunkCountZ = 0;
     [SerializeField]
     protected Vector2 chunkSize;
     [SerializeField]
@@ -105,7 +105,7 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
     [SerializeField]
     protected GameObject[] instanceChunkGos;
 
-    protected int instanceCount = 0;
+    protected int chunkCount = 0;
     protected MaterialPropertyBlock prop;
     protected Material mat;
     protected string shaderName = "Unlit/TerrainInstance";
@@ -137,13 +137,13 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
     public virtual void InitData(Mesh tempMesh, int countX, int countZ, int tChunkWidth, int tChunkLength, Quaternion rotation, Vector4[] tAlphaTexIndexs, Vector2[] tMinAndMaxHeight, Vector4[] startEndUVs)
     {
         int count = countX * countZ;
-        instanceCount = count;
-        instanceCountX = countX;
-        instanceCountZ = countZ;
+        chunkCount = count;
+        chunkCountX = countX;
+        chunkCountZ = countZ;
         chunkSize = new Vector2(tChunkWidth, tChunkLength);
         mesh = tempMesh;
 
-        instanceChunkGos = new GameObject[instanceCount];
+        instanceChunkGos = new GameObject[chunkCount];
 
         for (int j = 0; j < countZ; j++)
         {
@@ -166,7 +166,7 @@ public class TerrainInstanceSubClass : MonoBehaviour, ITerrainInstance
     {
         isInit = true;
         prop = new MaterialPropertyBlock(); 
-        instanceCount = instanceCountX * instanceCountZ;
+        chunkCount = chunkCountX * chunkCountZ;
         InitMat();
         sourcePos = transform.position;
 
