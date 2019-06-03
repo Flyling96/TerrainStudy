@@ -172,14 +172,14 @@
 					heightUV.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
 
 
-					float2 alphaLimit = float2(0.5f / _ChunkPixelCount.z, 0.5f / _ChunkPixelCount.w);
-					o.uv.x = o.uv.x * step(alphaLimit.x, o.uv.x) + alphaLimit.x * (1 - step(alphaLimit.x, o.uv.x));
-					o.uv.x = o.uv.x * step(o.uv.x,1-alphaLimit.x) + (1-alphaLimit.x) * (1 - step(o.uv.x, 1 - alphaLimit.x));
-					o.uv.y = o.uv.y * step(alphaLimit.y, o.uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, o.uv.y));
-					o.uv.y = o.uv.y * step(o.uv.y, 1 - alphaLimit.y) + (1 - alphaLimit.y) * (1 - step(o.uv.y, 1 - alphaLimit.y));
+					//float2 alphaLimit = float2(0.5f / _ChunkPixelCount.z, 0.5f / _ChunkPixelCount.w);
+					//o.uv.x = o.uv.x * step(alphaLimit.x, o.uv.x) + alphaLimit.x * (1 - step(alphaLimit.x, o.uv.x));
+					//o.uv.x = o.uv.x * step(o.uv.x,1-alphaLimit.x) + (1-alphaLimit.x) * (1 - step(o.uv.x, 1 - alphaLimit.x));
+					//o.uv.y = o.uv.y * step(alphaLimit.y, o.uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, o.uv.y));
+					//o.uv.y = o.uv.y * step(o.uv.y, 1 - alphaLimit.y) + (1 - alphaLimit.y) * (1 - step(o.uv.y, 1 - alphaLimit.y));
 
-					o.uv.x = lerp(startEndUV.x, startEndUV.z, o.uv.x);
-					o.uv.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
+					//o.uv.x = lerp(startEndUV.x, startEndUV.z, o.uv.x);
+					//o.uv.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
 
 					float2 heightTex = tex2Dlod(_HeightNormalTex, float4(heightUV.x, heightUV.y, 0, 0)).rg;
 					float height = DecodeHeight(heightTex) * _MaxHeight;
@@ -211,26 +211,35 @@
 					return color;
 				}
 
-				float GetMipMapLevel(float2 uv) // in texel units
-				{
-					float2  dx = ddx(uv);
-					float2  dy = ddy(uv);
-					float maxdd = max(dot(dx, dx), dot(dy, dy));
-					return 0.5 * log2(maxdd);
-				}
+				//float GetMipMapLevel(float2 uv) // in texel units
+				//{
+				//	float2  dx = ddx(uv);
+				//	float2  dy = ddy(uv);
+				//	float maxdd = max(dot(dx, dx), dot(dy, dy));
+				//	return 0.5 * log2(maxdd);
+				//}
 
 
 				float4 frag(v2f i) : SV_Target
 				{
-					//return float4(i.uv.x,i.uv.y,0,1);
 					UNITY_SETUP_INSTANCE_ID(i);
 #ifdef UNITY_INSTANCING_ENABLED
 					float4 alphaTexIndexs = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _AlphaTexIndexs);
-					//float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
+					float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
 #else
 					float4 alphaTexIndexs = _AlphaTexIndexs;
-					//float4 startEndUV = _StartEndUV;
+					float4 startEndUV = _StartEndUV;
 #endif
+
+					float2 alphaLimit = float2(0.5f / _ChunkPixelCount.z, 0.5f / _ChunkPixelCount.w);
+					i.uv.x = i.uv.x * step(alphaLimit.x, i.uv.x) + alphaLimit.x * (1 - step(alphaLimit.x, i.uv.x));
+					i.uv.x = i.uv.x * step(i.uv.x,1-alphaLimit.x) + (1-alphaLimit.x) * (1 - step(i.uv.x, 1 - alphaLimit.x));
+					i.uv.y = i.uv.y * step(alphaLimit.y, i.uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, i.uv.y));
+					i.uv.y = i.uv.y * step(i.uv.y, 1 - alphaLimit.y) + (1 - alphaLimit.y) * (1 - step(i.uv.y, 1 - alphaLimit.y));
+
+					i.uv.x = lerp(startEndUV.x, startEndUV.z, i.uv.x);
+					i.uv.y = lerp(startEndUV.y, startEndUV.w, i.uv.y);
+
 					//float2 uv;
 					//uv.x = lerp(startEndUV.x, startEndUV.z, i.uv.x);
 					//uv.y = lerp(startEndUV.y, startEndUV.w, i.uv.y);

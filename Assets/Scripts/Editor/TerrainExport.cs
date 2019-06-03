@@ -863,6 +863,7 @@ public class TerrainExport : ScriptableWizard
         alphaMapSetting.format = TextureImporterFormat.RGBA32;
         alphaMapSetting.resizeAlgorithm = TextureResizeAlgorithm.Mitchell;
         alphaMapSetting.maxTextureSize = 4096;
+        alphaMapImporter.mipmapEnabled = false;
         alphaMapImporter.SetPlatformTextureSettings(alphaMapSetting);
         alphaMapImporter.SaveAndReimport();
 
