@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 using TerrainECS;
+using CustomTerrain;
 
 namespace TerrainEditor
 {
@@ -1036,7 +1037,7 @@ namespace TerrainEditor
 
             string meshName = mapName + "_Chunk_Mesh.asset";
             Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;
-            terrainInstance.InitData(mesh, chunkCountX, chunkCountZ, chunkWidth, chunkLength, terrainInstance.transform.rotation, alphaTexIndexArray, chunkMinAndMaxHeight, startEndUVs);
+            terrainInstance.InitData(0,mesh, chunkCountX, chunkCountZ, chunkWidth, chunkLength, terrainInstance.transform.rotation, alphaTexIndexArray, chunkMinAndMaxHeight, startEndUVs);
 
             string prefabName = mapName + "_Instance.prefab";
             PrefabUtility.SaveAsPrefabAssetAndConnect(prefab, assetsPath + "/" + prefabName, InteractionMode.AutomatedAction);

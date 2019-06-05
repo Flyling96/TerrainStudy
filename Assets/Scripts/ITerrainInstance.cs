@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface ITerrainInstance 
+public interface IInstance 
 {
     void Draw();
 }

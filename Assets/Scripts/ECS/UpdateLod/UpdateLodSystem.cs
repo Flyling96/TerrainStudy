@@ -5,6 +5,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
+using CustomTerrain;
 
 namespace TerrainECS
 {
@@ -32,12 +33,12 @@ namespace TerrainECS
                     var translation = chunkTranslations[i];
                     var updateLodLevel = chunkUpdateLods[i];
 
-                    int lodLevel = InstanceMgr.instance.CaculateLodLevel(translation.Value, new Vector2(2000,0));
+                    int lodLevel = TerrainDataMgr.instance.CaculateLodLevel(translation.Value, new Vector2(2000,0));
                     float4 neighborChunkIndexs = chunkUpdateLods[i].neighborChunkIndexs;
 
                     chunkUpdateLods[i] = new UpdateLodComponent
                     {
-                        selfVertexCount = InstanceMgr.instance.CacuTessCount(lodLevel),
+                        selfVertexCount = TerrainDataMgr.instance.CacuTessCount(lodLevel),
                         neighborChunkIndexs = neighborChunkIndexs
                     };
                 }

@@ -31,14 +31,14 @@ namespace TerrainECS
                 {
                     var translation = translations[i];
                     var chunkViewOcclusion = chunkViewOcclusions[i];
-                    InstanceMgr.AABoundingBox aabb = new InstanceMgr.AABoundingBox();
+                    GeometricTestFunc.AABoundingBox aabb = new GeometricTestFunc.AABoundingBox();
                     aabb.min = new Vector3(translation.Value.x, chunkViewOcclusion.minAndMaxHeight.x, translation.Value.z);
                     aabb.max = new Vector3(translation.Value.x + chunkViewOcclusion.chunkSize.x, chunkViewOcclusion.minAndMaxHeight.y, translation.Value.z + chunkViewOcclusion.chunkSize.y);
                     chunkViewOcclusions[i] = new ChunkViewOcclusionComponent
                     {
                         minAndMaxHeight = chunkViewOcclusion.minAndMaxHeight,
                         chunkSize = chunkViewOcclusion.chunkSize,
-                        isShow = InstanceMgr.instance.IsBoundInCameraByBox(aabb, InstanceMgr.instance.mainCamera)
+                        isShow = GeometricTestFunc.instance.IsBoundInCameraByBox(aabb, RenderPipeline.instance.mainCamera)
                     };
 
                 }

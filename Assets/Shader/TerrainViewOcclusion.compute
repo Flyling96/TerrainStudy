@@ -1,0 +1,125 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+
+#define thread_group_x 16
+
+#define thread_group_y 16
+
+#define thread_x 8
+
+#define thread_y 8
+
+float4x4 cameraWorldToProjectMat;
+
+struct AABB
+{
+	float3 min;
+	float3 max;
+};
+
+struct ProjectVertex
+{
+	float4 v0;
+	float4 v1;
+	float4 v2;
+	float4 v3;
+	float4 v4;
+	float4 v5;
+	float4 v6;
+	float4 v7;
+};
+
+RWStructuredBuffer<ProjectVertex> projectVertexs;
+RWStructuredBuffer<AABB> aabbArray;
+RWStructuredBuffer<float> isCrossBuffers;
+
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	int index = id.x + (id.y * thread_x * thread_group_x) + (id.z * thread_group_x * thread_group_y * thread_x * thread_y);
+
+	AABB aabb = aabbArray[index];
+	float3 min = aabb.min;
+	float3 max = aabb.max;
+
+	float4 v0 = float4(min.xyz, 1);
+	float4 v1 = float4(min.xy, max.z, 1);
+	float4 v2 = float4(max.x, min.yz, 1);
+	float4 v3 = float4(max.x, min.y, max.z,1);
+	float4 v4 = float4(min.x, max.y, min.z, 1);
+	float4 v5 = float4(min.x, max.yz, 1);
+	float4 v6 = float4(max.xy, min.z, 1);
+	float4 v7 = float4(max.xyz, 1);
+
+
+	//v0 = mul(cameraWorldToProjectMat, v0);
+	//v0 = v0 / v0.w;
+	//v1 = mul(cameraWorldToProjectMat, v1);
+	//v1 = v1 / v1.w;
+	//v2 = mul(cameraWorldToProjectMat, v2);
+	//v2 = v2 / v2.w;
+	//v3 = mul(cameraWorldToProjectMat, v3);
+	//v3 = v3 / v3.w;
+	//v4 = mul(cameraWorldToProjectMat, v4);
+	//v4 = v4 / v4.w;
+	//v5 = mul(cameraWorldToProjectMat, v5);
+	//v5 = v5 / v5.w;
+	//v6 = mul(cameraWorldToProjectMat, v6);
+	//v6 = v6 / v6.w;
+	//v7 = mul(cameraWorldToProjectMat, v7);
+	//v7 = v7 / v7.w;
+
+	//isCrossBuffers[index] = 1 - (1 - step(v0.x, 1) * step(-1, v0.x) * step(v0.y, 1) * step(-1, v0.y) * step(v0.z, 1) * step(-1, v0.z))*
+	//	(1 - step(v1.x, 1) * step(-1, v1.x) * step(v1.y, 1) * step(-1, v1.y) * step(v1.z, 1) * step(-1, v1.z)) *
+	//	(1 - step(v2.x, 1) * step(-1, v2.x) * step(v2.y, 1) * step(-1, v2.y) * step(v2.z, 1) * step(-1, v2.z)) *
+	//	(1 - step(v3.x, 1) * step(-1, v3.x) * step(v3.y, 1) * step(-1, v3.y) * step(v3.z, 1) * step(-1, v3.z)) *
+	//	(1 - step(v4.x, 1) * step(-1, v4.x) * step(v4.y, 1) * step(-1, v4.y) * step(v4.z, 1) * step(-1, v4.z)) *
+	//	(1 - step(v5.x, 1) * step(-1, v5.x) * step(v5.y, 1) * step(-1, v5.y) * step(v5.z, 1) * step(-1, v5.z)) *
+	//	(1 - step(v6.x, 1) * step(-1, v6.x) * step(v6.y, 1) * step(-1, v6.y) * step(v6.z, 1) * step(-1, v6.z)) *
+	//	(1 - step(v7.x, 1) * step(-1, v7.x) * step(v7.y, 1) * step(-1, v7.y) * step(v7.z, 1) * step(-1, v7.z));
+
+	//存在八个顶点都在某个视锥面之外，则视锥与AABB不相交
+	//isCrossBuffers[index] =
+	//	(1 - (1 - step(v0.x, 1))*(1 - step(v1.x, 1))*(1 - step(v2.x, 1))*(1 - step(v3.x, 1))*(1 - step(v4.x, 1))*(1 - step(v5.x, 1))*(1 - step(v6.x, 1))*(1 - step(v7.x, 1))) *
+	//	(1 - (1 - step(-1, v0.x))*(1 - step(-1, v1.x))*(1 - step(-1, v2.x))*(1 - step(-1, v3.x))*(1 - step(-1, v4.x))*(1 - step(-1, v5.x))*(1 - step(-1, v6.x))*(1 - step(-1, v7.x))) *
+	//	(1 - (1 - step(v0.y, 1))*(1 - step(v1.y, 1))*(1 - step(v2.y, 1))*(1 - step(v3.y, 1))*(1 - step(v4.y, 1))*(1 - step(v5.y, 1))*(1 - step(v6.y, 1))*(1 - step(v7.y, 1))) *
+	//	(1 - (1 - step(-1, v0.y))*(1 - step(-1, v1.y))*(1 - step(-1, v2.y))*(1 - step(-1, v3.y))*(1 - step(-1, v4.y))*(1 - step(-1, v5.y))*(1 - step(-1, v6.y))*(1 - step(-1, v7.y))) *
+	//	(1 - (1 - step(v0.z, 1))*(1 - step(v1.z, 1))*(1 - step(v2.z, 1))*(1 - step(v3.z, 1))*(1 - step(v4.z, 1))*(1 - step(v5.z, 1))*(1 - step(v6.z, 1))*(1 - step(v7.z, 1))) *
+	//	(1 - (1 - step(-1, v0.z))*(1 - step(-1, v1.z))*(1 - step(-1, v2.z))*(1 - step(-1, v3.z))*(1 - step(-1, v4.z))*(1 - step(-1, v5.z))*(1 - step(-1, v6.z))*(1 - step(-1, v7.z)));
+
+
+	v0 = mul(cameraWorldToProjectMat, v0);
+	v1 = mul(cameraWorldToProjectMat, v1);
+	v2 = mul(cameraWorldToProjectMat, v2);
+	v3 = mul(cameraWorldToProjectMat, v3);
+	v4 = mul(cameraWorldToProjectMat, v4);
+	v5 = mul(cameraWorldToProjectMat, v5);
+	v6 = mul(cameraWorldToProjectMat, v6);
+	v7 = mul(cameraWorldToProjectMat, v7);
+
+	//存在八个顶点都在某个视锥面之外，则视锥与AABB不相交
+	isCrossBuffers[index] =
+	(1 - (1 - step(v0.x, v0.w))*(1 - step(v1.x, v1.w))*(1 - step(v2.x, v2.w))*(1 - step(v3.x, v3.w))*(1 - step(v4.x, v4.w))*(1 - step(v5.x, v5.w))*(1 - step(v6.x, v6.w))*(1 - step(v7.x, v7.w))) *
+	(1 - (1 - step(-v0.w, v0.x))*(1 - step(-v1.w, v1.x))*(1 - step(-v2.w, v2.x))*(1 - step(-v3.w, v3.x))*(1 - step(-v4.w, v4.x))*(1 - step(-v5.w, v5.x))*(1 - step(-v6.w, v6.x))*(1 - step(-v7.w, v7.x))) *
+	(1 - (1 - step(v0.y, v0.w))*(1 - step(v1.y, v1.w))*(1 - step(v2.y, v2.w))*(1 - step(v3.y, v3.w))*(1 - step(v4.y, v4.w))*(1 - step(v5.y, v5.w))*(1 - step(v6.y, v6.w))*(1 - step(v7.y, v7.w))) *
+	(1 - (1 - step(-v0.w, v0.y))*(1 - step(-v1.w, v1.y))*(1 - step(-v2.w, v2.y))*(1 - step(-v3.w, v3.y))*(1 - step(-v4.w, v4.y))*(1 - step(-v5.w, v5.y))*(1 - step(-v6.w, v6.y))*(1 - step(-v7.w, v7.y))) *
+	(1 - (1 - step(v0.z, v0.w))*(1 - step(v1.z, v1.w))*(1 - step(v2.z, v2.w))*(1 - step(v3.z, v3.w))*(1 - step(v4.z, v4.w))*(1 - step(v5.z, v5.w))*(1 - step(v6.z, v6.w))*(1 - step(v7.z, v7.w))) *
+	(1 - (1 - step(-v0.w, v0.z))*(1 - step(-v1.w, v1.z))*(1 - step(-v2.w, v2.z))*(1 - step(-v3.w, v3.z))*(1 - step(-v4.w, v4.z))*(1 - step(-v5.w, v5.z))*(1 - step(-v6.w, v6.z))*(1 - step(-v7.w, v7.z)));
+
+
+
+	projectVertexs[index].v0 = v0;
+	projectVertexs[index].v1 = v1;
+	projectVertexs[index].v2 = v2;
+	projectVertexs[index].v3 = v3;
+	projectVertexs[index].v4 = v4;
+	projectVertexs[index].v5 = v5;
+	projectVertexs[index].v6 = v6;
+	projectVertexs[index].v7 = v7;
+
+}
