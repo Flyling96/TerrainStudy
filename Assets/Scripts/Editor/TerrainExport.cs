@@ -351,6 +351,7 @@ namespace TerrainEditor
             //设置图片导入信息
             TextureImporter heightNormalTexImporter = AssetImporter.GetAtPath(assetsPath + "/" + imageName) as TextureImporter;
             heightNormalTexImporter.isReadable = true;
+            heightNormalTexImporter.mipmapEnabled = false;
             heightNormalTexImporter.wrapMode = TextureWrapMode.Clamp;
             heightNormalTexImporter.npotScale = TextureImporterNPOTScale.None;
             TextureImporterPlatformSettings heightNormalTexSetting = heightNormalTexImporter.GetDefaultPlatformTextureSettings();

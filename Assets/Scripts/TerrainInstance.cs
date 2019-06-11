@@ -109,7 +109,7 @@ namespace CustomTerrain
         public override void Draw()
         {
             base.Draw();
-            if (chunkCount == 0 || mesh == null || !isInit) return;
+            if (chunkCount == 0 || mesh == null || !isInit || transform == null) return;
 
             UpdateTRS();
             UpdateLodLevel();

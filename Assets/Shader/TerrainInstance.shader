@@ -148,6 +148,7 @@
 				[UNITY_outputtopology("triangle_cw")]
 				[UNITY_patchconstantfunc("hsconst_quad_surf")]
 				[UNITY_outputcontrolpoints(4)]
+				[maxtessfactor(64.0f)]
 				internalTessInterp_appdata hs_quad_surf(InputPatch<internalTessInterp_appdata, 4> v, uint id:SV_OutputControlPointID)
 				{
 					return v[id];

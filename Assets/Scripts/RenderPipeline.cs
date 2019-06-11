@@ -8,6 +8,7 @@ public class RenderPipeline : MonoBehaviour
     public static RenderPipeline instance;
 
     public ComputeShader terrainViewOccusionCS;
+    public ComputeShader terrainHeightToCpuCS;
 
     RenderTexture curRT;
 

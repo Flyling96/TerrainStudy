@@ -8,7 +8,7 @@ namespace CustomTerrain
     public class TerrainDataMgr : Singleton<TerrainDataMgr>
     {
         //地形Lod的最大等级
-        public Vector2 maxLodVertexCount = new Vector2(100, 100);
+        public Vector2 maxLodVertexCount = new Vector2(63, 63);
 
         TerrainInstance insideTerrainInstance = null;
         InstanceChunk insideInstanceChunk = null;
@@ -51,15 +51,15 @@ namespace CustomTerrain
 
         void RefreshCollider()
         {
-            if (!terrainInstanceDic.ContainsKey(0)) return;
+            if (!terrainInstanceDic.ContainsKey(0) || RenderPipeline.instance == null) return;
             insideTerrainInstance = terrainInstanceDic[0];
             InstanceChunk tempInstanceChunk = GetInsideChunk(RenderPipeline.instance.mainCameraPos);
-            if(tempInstanceChunk == insideInstanceChunk || tempInstanceChunk == null)
+            if(tempInstanceChunk == insideInstanceChunk && needColliderChunkList.Contains(tempInstanceChunk)|| tempInstanceChunk == null)
             {
                 return;
             }
             insideInstanceChunk = tempInstanceChunk;
-            needColliderChunkList.Clear();
+            //needColliderChunkList.Clear();
 
             //九宫格
             needColliderChunkList.Add(insideInstanceChunk);
@@ -84,7 +84,7 @@ namespace CustomTerrain
                 {
                     needColliderChunkList.Add(insideInstanceChunk.neighborChunk[1].neighborChunk[2]);
                 }
-                if (insideInstanceChunk.neighborChunk[1].neighborChunk[1] != null)//右下
+                if (insideInstanceChunk.neighborChunk[1].neighborChunk[3] != null)//右下
                 {
                     needColliderChunkList.Add(insideInstanceChunk.neighborChunk[1].neighborChunk[3]);
                 }
@@ -100,7 +100,21 @@ namespace CustomTerrain
                 needColliderChunkList.Add(insideInstanceChunk.neighborChunk[3]);
             }
 
-            for(int i=0;i< needColliderChunkList.Count;i++)
+            //过多剔除远距离
+            needColliderChunkList.Sort(SortChunk);
+
+            if (needColliderChunkList.Count > 16)
+            {
+                for (int i = needColliderChunkList.Count - 1; i >= 16; i--)
+                {
+                    InstanceChunk chunk = needColliderChunkList[i];
+                    needColliderChunkList.RemoveAt(i);
+                    chunk.RemoveCollider();
+                }
+            }
+
+
+            for (int i=0;i< needColliderChunkList.Count;i++)
             {
                 if (needColliderChunkList[i] != null)
                 {
@@ -112,6 +126,19 @@ namespace CustomTerrain
             }
         }
 
+        int SortChunk(InstanceChunk a,InstanceChunk b)
+        {
+            float dis = Vector2.Distance(new Vector2(RenderPipeline.instance.mainCamera.transform.position.x,
+                RenderPipeline.instance.mainCamera.transform.position.z),
+                new Vector2(a.transform.position.x, a.transform.position.z));
+
+            float dis1 = Vector2.Distance(new Vector2(RenderPipeline.instance.mainCamera.transform.position.x,
+                RenderPipeline.instance.mainCamera.transform.position.z),
+                new Vector2(b.transform.position.x, b.transform.position.z));
+
+            return dis > dis1 ? 1 : -1;
+        }
+
 
         #region LOD计算相关
         public int CaculateLodLevel(Vector3 instancePos, Vector2 chunkMinAndMaxHeight)
@@ -120,6 +147,12 @@ namespace CustomTerrain
             {
                 return 0;
             }
+
+            if (insideInstanceChunk != null && insideTerrainInstance.GetChunkByPos(instancePos) == insideInstanceChunk)
+            {
+                return 1;
+            }
+
             float height = Mathf.Abs(chunkMinAndMaxHeight.y - chunkMinAndMaxHeight.x);
             float distance = Vector3.Distance(instancePos, RenderPipeline.instance.mainCameraPos);
             int lodLevel = 1;
@@ -156,25 +189,25 @@ namespace CustomTerrain
             switch (lodLevel)
             {
                 case 1:
-                    result = 100;
+                    result = 63;
                     break;
                 case 2:
-                    result = 50;
+                    result = 31;
                     break;
                 case 3:
-                    result = 20;
+                    result = 15;
                     break;
                 case 4:
-                    result = 5;
+                    result = 7;
                     break;
                 case 5:
-                    result = 1;
+                    result = 3;
                     break;
                 default:
                     result = 1;
                     break;
             }
-            result = result * chunkWidth / 100;
+            //result = result * chunkWidth / 100;
             return result < 1 ? 1 : result;
         }
         #endregion

@@ -31,6 +31,27 @@ namespace CustomTerrain
             return Vector2.Dot(heightXY, decodeDot);
         }
 
+        float[] GetHeightDataByGpu(Texture2D heightMap,float maxHeight)
+        {
+            ComputeBuffer resultBuffer = new ComputeBuffer(4096, 4);
+            ComputeShader getHeightCS = RenderPipeline.instance.terrainHeightToCpuCS;
+            int kernel = getHeightCS.FindKernel("CSMain");
+            if (kernel == -1) return null;
+            float[] result = new float[4096];
+
+            getHeightCS.SetTexture(kernel,"HeightNormalTex", heightMap);
+            getHeightCS.SetFloat("MaxHeight", maxHeight);
+            getHeightCS.SetVector("StartEndUV", startEndUV);
+            getHeightCS.SetFloat("VertexCount", 64.0f);
+
+            getHeightCS.SetBuffer(kernel, "HeightArray", resultBuffer);
+            getHeightCS.Dispatch(kernel, 8, 8, 1);
+
+            resultBuffer.GetData(result);
+            resultBuffer.Release();
+            return result;
+        }
+
         public void InitCollider(Texture2D heightMap, float maxHeight, Vector2 pixelVertexPro)
         {
             if (meshCollider == null)
@@ -46,6 +67,9 @@ namespace CustomTerrain
             {
                 return;
             }
+
+            float[] heightArray = GetHeightDataByGpu(heightMap, maxHeight);
+
             int column = (int)TerrainDataMgr.instance.maxLodVertexCount.x;
             int row = (int)TerrainDataMgr.instance.maxLodVertexCount.y;
 
@@ -59,22 +83,24 @@ namespace CustomTerrain
             int numberOfIndex = row * column * 4;
             Vector3[] vertices = new Vector3[numberOfVertices];
             int[] indices = new int[numberOfIndex];
+            int index;
 
             for (int r = 0; r < row + 1; r++)
             {
-                int nowVertexCountZ = startVertexCountZ + r + 1;
+                //int nowVertexCountZ = startVertexCountZ + r + 1;
                 for (int c = 0; c < column + 1; c++)
                 {
-                    int nowVertexCountX = startVertexCountX + c + 1;
-                    int pixelX = (int)((nowVertexCountX - 1) * pixelVertexPro.x);
-                    int pixelZ = (int)((nowVertexCountZ - 1) * pixelVertexPro.y);
-                    Color color = heightMap.GetPixel(pixelX, pixelZ);
-                    float height = DecodeHeight(new Vector2(color.r, color.g)) * maxHeight;
+                    index = r * (column + 1) + c;
+                    //int nowVertexCountX = startVertexCountX + c + 1;
+                    //int pixelX = (int)((nowVertexCountX - 1) * pixelVertexPro.x);
+                    //int pixelZ = (int)((nowVertexCountZ - 1) * pixelVertexPro.y);
+                    //todo：考虑放到GPU中采集获取高度
+                    //Color color = heightMap.GetPixel(pixelX, pixelZ);
+                    float height = heightArray[index];
                     vertices[r * (column + 1) + c] = new Vector3(c * spaceWidth, height, r * spaceLength);
                 }
             }
 
-            int index;
             int line;
             for (int r = 0; r < row; r++)
             {
@@ -96,6 +122,24 @@ namespace CustomTerrain
 
             meshCollider.sharedMesh = m_mesh;
 
+        }
+
+        public void RemoveCollider()
+        {
+            if(meshCollider == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(meshCollider);
+            }
+            else
+            {
+                DestroyImmediate(meshCollider);
+            }
+            meshCollider = null;
         }
 
         public bool IsShow
