@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System.IO;
-using TerrainECS;
 using CustomTerrain;
 
 namespace TerrainEditor
@@ -53,7 +52,9 @@ namespace TerrainEditor
             }
             else
             {
+#if UseTerrainECS
                 isChunkECS = EditorGUILayout.Toggle("是否采用 ECS", isChunkECS);
+#endif        
                 chunkWidth = EditorGUILayout.IntField("块宽度(X)", chunkWidth);
                 chunkLength = EditorGUILayout.IntField("块长度(Z)", chunkLength);
                 chunkQuadCountX = 1;
@@ -259,7 +260,7 @@ namespace TerrainEditor
 
         }
 
-        #region 保存 HeightNormalTex
+#region 保存 HeightNormalTex
         Texture2D heightNormalTex = null;
 
         void GetChunkMinAndMaxHeight(float height, int i, int j)
@@ -464,9 +465,9 @@ namespace TerrainEditor
             }
 
         }
-        #endregion
+#endregion
 
-        #region 保存 Mesh
+#region 保存 Mesh
         void SaveTerrainMesh(float width, float length, string path, bool isChunkMesh)
         {
             string meshName = "";
@@ -650,9 +651,9 @@ namespace TerrainEditor
 
             AssetDatabase.CreateAsset(m_mesh, path + "/" + meshName);
         }
-        #endregion
+#endregion
 
-        #region 保存 Material
+#region 保存 Material
         void SaveTotalTerrainMaterial()
         {
             EditorUtility.DisplayProgressBar("保存整体地形材质", "保存整体地形材质: 0/1", 0);
@@ -704,9 +705,9 @@ namespace TerrainEditor
             material.SetFloat("_MaxHeight", data.size.y);
             AssetDatabase.CreateAsset(material, matPath);
         }
-        #endregion
+#endregion
 
-        #region 保存 Prefab
+#region 保存 Prefab
         void SaveTotalPrefab()
         {
             EditorUtility.DisplayProgressBar("保存地形Prefab", "保存地形Prefab: 0/1", 0);
@@ -800,9 +801,9 @@ namespace TerrainEditor
         }
 
 
-        #endregion
+#endregion
 
-        #region 保存 AlphaMap
+#region 保存 AlphaMap
         Vector4[] alphaWeightArray;
         Vector4[] alphaTexIndexArray;
         Texture2DArray terrainMapArray;
@@ -1007,23 +1008,27 @@ namespace TerrainEditor
         }
 
 
-        #endregion
+#endregion
 
-        #region Instance 相关
+#region Instance 相关
         void SaveInstancePrefab()
         {
             GameObject prefab = new GameObject();
             prefab.name = mapName + "_Instance";
 
+#if UseTerrainECS
+            //if (!isChunkECS)
+            //{
+            //    terrainInstance = prefab.AddComponent<TerrainInstance>();
+            //}
+            //else
+            //{
+            //    terrainInstance = prefab.AddComponent<ECSTerrainInstance>();
+            //}
+#else
             TerrainInstanceSubClass terrainInstance;
-            if (!isChunkECS)
-            {
-                terrainInstance = prefab.AddComponent<TerrainInstance>();
-            }
-            else
-            {
-                terrainInstance = prefab.AddComponent<ECSTerrainInstance>();
-            }
+            terrainInstance = prefab.AddComponent<TerrainInstance>();
+#endif
 
             string path = assetsPath + "/" + mapName + "_Total_HeightNormalMap.png";
             Texture2D hnTex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
@@ -1048,7 +1053,7 @@ namespace TerrainEditor
 
         }
 
-        #endregion
+#endregion
 
         public void DelectDir(string srcPath)
         {

@@ -105,20 +105,20 @@ namespace UnityChan
 
 		void SetCloseEyes ()
 		{
-			ref_SMR_EYE_DEF.SetBlendShapeWeight (6, ratio_Close);
-			ref_SMR_EL_DEF.SetBlendShapeWeight (6, ratio_Close);
+			//ref_SMR_EYE_DEF.SetBlendShapeWeight (6, ratio_Close);
+			//ref_SMR_EL_DEF.SetBlendShapeWeight (6, ratio_Close);
 		}
 
 		void SetHalfCloseEyes ()
 		{
-			ref_SMR_EYE_DEF.SetBlendShapeWeight (6, ratio_HalfClose);
-			ref_SMR_EL_DEF.SetBlendShapeWeight (6, ratio_HalfClose);
+			//ref_SMR_EYE_DEF.SetBlendShapeWeight (6, ratio_HalfClose);
+			//ref_SMR_EL_DEF.SetBlendShapeWeight (6, ratio_HalfClose);
 		}
 
 		void SetOpenEyes ()
 		{
-			ref_SMR_EYE_DEF.SetBlendShapeWeight (6, ratio_Open);
-			ref_SMR_EL_DEF.SetBlendShapeWeight (6, ratio_Open);
+			//ref_SMR_EYE_DEF.SetBlendShapeWeight (6, ratio_Open);
+			//ref_SMR_EL_DEF.SetBlendShapeWeight (6, ratio_Open);
 		}
 		
 		// ランダム判定用関数

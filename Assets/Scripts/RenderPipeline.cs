@@ -7,6 +7,7 @@ public class RenderPipeline : MonoBehaviour
 {
     public static RenderPipeline instance;
 
+    public Shader terrainInstance;
     public ComputeShader terrainViewOccusionCS;
     public ComputeShader terrainHeightToCpuCS;
 

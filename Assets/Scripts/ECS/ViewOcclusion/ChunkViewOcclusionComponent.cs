@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿#if UseTerrainECS
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
@@ -16,3 +17,4 @@ namespace TerrainECS
         public bool isShow;          //剔除是否显示
     }
 }
+#endif

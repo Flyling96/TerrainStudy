@@ -113,7 +113,7 @@ namespace CustomTerrain
         protected string shaderName = "Unlit/TerrainInstance";
 
 
-        protected virtual void OnEnable()
+        protected virtual void Awake()
         {
             InstanceMgr.instance.Register(this);
             if (mat == null)
@@ -174,9 +174,14 @@ namespace CustomTerrain
 
         }
 
-        void InitMat()
+        protected void InitMat()
         {
-            mat = new Material(Shader.Find(shaderName));
+            if(RenderPipeline.instance == null || RenderPipeline.instance.terrainInstance == null)
+            {
+                Debug.Log("TerrainInstanceShader is Null");
+                return;
+            }
+            mat = new Material(RenderPipeline.instance.terrainInstance);
             mat.enableInstancing = true;
 
             if (matData == null) return;

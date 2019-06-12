@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using Unity.Mathematics;
 
 namespace CustomTerrain
 {
@@ -79,7 +78,17 @@ namespace CustomTerrain
 
         void DrawInstance(int index)
         {
-            if (prop == null) return;
+            if (prop == null)
+            {
+                Debug.Log("Prop is Null");
+                prop = new MaterialPropertyBlock();
+            }
+
+            if(mat == null)
+            {
+                Debug.Log("Mat is Null");
+                InitMat();
+            }
 
             int maxListCount = showChunkCount > (index + 1) * 1023 ? 1023 : showChunkCount - index * 1023;
 
@@ -181,14 +190,14 @@ namespace CustomTerrain
 
         struct ProjectVertex
         {
-            float4 v0;
-            float4 v1;
-            float4 v2;
-            float4 v3;
-            float4 v4;
-            float4 v5;
-            float4 v6;
-            float4 v7;
+            Vector4 v0;
+            Vector4 v1;
+            Vector4 v2;
+            Vector4 v3;
+            Vector4 v4;
+            Vector4 v5;
+            Vector4 v6;
+            Vector4 v7;
         }
 
         GeometricTestFunc.AABoundingBox[] aabbs = null;
@@ -459,11 +468,16 @@ namespace CustomTerrain
             {
                 inputBuffer.Release();
             }
+
+            if(debugBuffer !=null)
+            {
+                debugBuffer.Release();
+            }
         }
 
-        protected override void OnEnable()
+        protected override void Awake()
         {
-            base.OnEnable();
+            base.Awake();
             TerrainDataMgr.instance.Register(this);
         }
 

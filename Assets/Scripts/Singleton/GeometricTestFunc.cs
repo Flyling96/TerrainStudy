@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using Unity.Mathematics;
 
 public class GeometricTestFunc : Singleton<GeometricTestFunc>
 {
@@ -227,7 +226,7 @@ public class GeometricTestFunc : Singleton<GeometricTestFunc>
     {
         Sphere sphere = new Sphere
         {
-            spherePoint = (new float3(aabb.min) + new float3(aabb.max)) / 2,
+            spherePoint = (aabb.min+aabb.max)/ 2,
             radius = Vector3.Distance(aabb.max, aabb.min) / 2
         };
 
