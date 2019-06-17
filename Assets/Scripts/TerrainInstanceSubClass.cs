@@ -113,7 +113,7 @@ namespace CustomTerrain
         protected string shaderName = "Unlit/TerrainInstance";
 
 
-        protected virtual void Awake()
+        protected virtual void OnEnable()
         {
             InstanceMgr.instance.Register(this);
             if (mat == null)
@@ -122,10 +122,10 @@ namespace CustomTerrain
             }
         }
 
-        protected virtual void OnDisable()
-        {
-            InstanceMgr.instance.Remove(this);
-        }
+        //protected virtual void OnDisable()
+        //{
+        //    InstanceMgr.instance.Remove(this);
+        //}
 
         public void SetMatData(Texture2D tex, float max, Texture2D aTex, Texture2DArray tMapArray, Texture2D[] tTexArray, Vector4[] tMapSize, Vector4 cPixelCount)
         {

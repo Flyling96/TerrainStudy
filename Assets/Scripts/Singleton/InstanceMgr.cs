@@ -46,7 +46,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
 
     private void Update()
     {
-        UpdateInstance();
+        //UpdateInstance();
     }
 
 

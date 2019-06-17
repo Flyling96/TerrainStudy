@@ -63,6 +63,15 @@ namespace CustomTerrain
         {
             InitComputeBuffer();
             InitData();
+            InitChunk();
+        }
+
+        void InitChunk()
+        {
+            for(int i=0;i<instanceChunks.Length;i++)
+            {
+                instanceChunks[i].Init();
+            }
         }
 
         void UpdateMat()
@@ -117,8 +126,8 @@ namespace CustomTerrain
 
         public override void Draw()
         {
-            base.Draw();
             if (chunkCount == 0 || mesh == null || !isInit || transform == null) return;
+            base.Draw();
 
             UpdateTRS();
             UpdateLodLevel();
@@ -475,17 +484,17 @@ namespace CustomTerrain
             }
         }
 
-        protected override void Awake()
+        protected override void OnEnable()
         {
-            base.Awake();
+            base.OnEnable();
             TerrainDataMgr.instance.Register(this);
         }
 
-        protected override void OnDisable()
-        {
-            base.OnDisable();
-            TerrainDataMgr.instance.Remove(this);
-        }
+        //protected override void OnDisable()
+        //{
+        //    base.OnDisable();
+        //    TerrainDataMgr.instance.Remove(this);
+        //}
 
     }
 }

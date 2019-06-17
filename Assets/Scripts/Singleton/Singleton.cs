@@ -7,6 +7,7 @@ public class BaseSingleton : MonoBehaviour
 
 }
 
+[ExecuteInEditMode]
 public class Singleton<T>: BaseSingleton where T: BaseSingleton
 {
 

@@ -55,9 +55,16 @@ public class RenderPipeline : MonoBehaviour
 
     private void OnPreCull()
     {
-        mainCameraPos = mainCamera.transform.position;
+        //mainCameraPos = mainCamera.transform.position;
         //mainCameraWorldToProjection = mainCamera.projectionMatrix * mainCamera.worldToCameraMatrix;
         //occlusionWorldToPrijection = occlusionPrijectionMatrix * mainCamera.worldToCameraMatrix;
+        //InstanceMgr.instance.UpdateInstance();
+    }
+
+    private void Update()
+    {
+        mainCameraPos = mainCamera.transform.position;
+        InstanceMgr.instance.UpdateInstance();
     }
 
     private void OnRenderObject()

@@ -62,16 +62,20 @@ namespace CustomTerrain
             //needColliderChunkList.Clear();
 
             //九宫格
-            needColliderChunkList.Add(insideInstanceChunk);
+            if(!needColliderChunkList.Contains(insideInstanceChunk))
+                needColliderChunkList.Add(insideInstanceChunk);
 
             if (insideInstanceChunk.neighborChunk[0] != null)//上
             {
-                needColliderChunkList.Add(insideInstanceChunk.neighborChunk[0]);
-                if(insideInstanceChunk.neighborChunk[0].neighborChunk[2]!=null)//左上
+                if (!needColliderChunkList.Contains(insideInstanceChunk.neighborChunk[0]))
+                    needColliderChunkList.Add(insideInstanceChunk.neighborChunk[0]);
+                if(insideInstanceChunk.neighborChunk[0].neighborChunk[2]!=null &&
+                    !needColliderChunkList.Contains(insideInstanceChunk.neighborChunk[0].neighborChunk[2]))//左上
                 {
                     needColliderChunkList.Add(insideInstanceChunk.neighborChunk[0].neighborChunk[2]);
                 }
-                if (insideInstanceChunk.neighborChunk[0].neighborChunk[3] != null)//右上
+                if (insideInstanceChunk.neighborChunk[0].neighborChunk[3] != null &&
+                    !needColliderChunkList.Contains(insideInstanceChunk.neighborChunk[0].neighborChunk[3]))//右上
                 {
                     needColliderChunkList.Add(insideInstanceChunk.neighborChunk[0].neighborChunk[3]);
                 }
@@ -79,12 +83,15 @@ namespace CustomTerrain
 
             if (insideInstanceChunk.neighborChunk[1] != null)//下
             {
-                needColliderChunkList.Add(insideInstanceChunk.neighborChunk[1]);
-                if (insideInstanceChunk.neighborChunk[1].neighborChunk[2] != null)//左下
+                if (!needColliderChunkList.Contains(insideInstanceChunk))
+                    needColliderChunkList.Add(insideInstanceChunk.neighborChunk[1]);
+                if (insideInstanceChunk.neighborChunk[1].neighborChunk[2] != null &&
+                    !needColliderChunkList.Contains(insideInstanceChunk.neighborChunk[1].neighborChunk[2]))//左下
                 {
                     needColliderChunkList.Add(insideInstanceChunk.neighborChunk[1].neighborChunk[2]);
                 }
-                if (insideInstanceChunk.neighborChunk[1].neighborChunk[3] != null)//右下
+                if (insideInstanceChunk.neighborChunk[1].neighborChunk[3] != null &&
+                    !needColliderChunkList.Contains(insideInstanceChunk.neighborChunk[1].neighborChunk[3]))//右下
                 {
                     needColliderChunkList.Add(insideInstanceChunk.neighborChunk[1].neighborChunk[3]);
                 }
@@ -92,14 +99,17 @@ namespace CustomTerrain
 
             if (insideInstanceChunk.neighborChunk[2] != null)//左
             {
-                needColliderChunkList.Add(insideInstanceChunk.neighborChunk[2]);
+                if (!needColliderChunkList.Contains(insideInstanceChunk.neighborChunk[2]))
+                    needColliderChunkList.Add(insideInstanceChunk.neighborChunk[2]);
             }
 
             if (insideInstanceChunk.neighborChunk[3] != null)//右
             {
-                needColliderChunkList.Add(insideInstanceChunk.neighborChunk[3]);
+                if (!needColliderChunkList.Contains(insideInstanceChunk.neighborChunk[3]))
+                    needColliderChunkList.Add(insideInstanceChunk.neighborChunk[3]);
             }
 
+            needColliderChunkList.Remove(null);
             //过多剔除远距离
             needColliderChunkList.Sort(SortChunk);
 

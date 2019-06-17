@@ -101,13 +101,19 @@ namespace UnityChan
 					}
 				}
 			}
-		
 
-			// 上下のキー入力でキャラクターを移動させる
-			transform.localPosition += velocity * Time.fixedDeltaTime;
 
-			// 左右のキー入力でキャラクタをY軸で旋回させる
-			transform.Rotate (0, h * rotateSpeed, 0);	
+            // 上下のキー入力でキャラクターを移動させる
+            //Vector3 position = transform.position;
+            //position += velocity * Time.fixedDeltaTime;
+            //transform.localPosition += velocity * Time.fixedDeltaTime;
+
+            rb.velocity = new Vector3(velocity.x,rb.velocity.y, velocity.z);
+            //rb.MovePosition(position);
+            //rb.AddForce(transform.forward * 200, ForceMode.Force);
+
+            // 左右のキー入力でキャラクタをY軸で旋回させる
+            transform.Rotate (0, h * rotateSpeed, 0);	
 	
 
 			// 以下、Animatorの各ステート中での処理
@@ -122,7 +128,7 @@ namespace UnityChan
 		// JUMP中の処理
 		// 現在のベースレイヤーがjumpStateの時
 		else if (currentBaseState.nameHash == jumpState) {
-				cameraObject.SendMessage ("setCameraPositionJumpView");	// ジャンプ中のカメラに変更
+				//cameraObject.SendMessage ("setCameraPositionJumpView");	// ジャンプ中のカメラに変更
 				// ステートがトランジション中でない場合
 				if (!anim.IsInTransition (0)) {
 				

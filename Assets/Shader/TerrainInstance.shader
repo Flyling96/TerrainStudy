@@ -22,8 +22,7 @@
 				#pragma hull hs_quad_surf
 				#pragma domain ds_quad_surf
 				#pragma fragment frag
-				#pragma target 5.0
-				#pragma 
+				#pragma target 4.6
 
 				#include "UnityCG.cginc"
 
@@ -38,14 +37,15 @@
 				{
 					float4 vertex : SV_POSITION;
 					float2 uv : TEXCOORD0;
-					uint instanceID : SV_InstanceID;
+					int instanceID : SV_InstanceID;
 				};
 
 				struct internalTessInterp_appdata
 				{
-					float4 vertex : INTERNALTESSPOS;
+					float4 vertex : SV_POSITION;
 					float2 uv:TEXCOORD0;
-					uint instanceID : SV_InstanceID;
+					float4 startEndUV:TEXCOORD1;
+					int instanceID : SV_InstanceID;
 				};
 
 				sampler2D _MainTex;
@@ -81,7 +81,8 @@
 				{
 					internalTessInterp_appdata o;
 					UNITY_SETUP_INSTANCE_ID(v);
-					UNITY_TRANSFER_INSTANCE_ID(v, o);
+					//UNITY_TRANSFER_INSTANCE_ID(v, o);
+					o.instanceID = v.instanceID;
 //#ifdef UNITY_INSTANCING_ENABLED
 //					float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
 //#else
@@ -102,6 +103,15 @@
 
 					//o.vertex = mul(UNITY_MATRIX_VP, worldPos);
 					o.vertex = worldPos;
+
+#ifdef UNITY_INSTANCING_ENABLED
+					float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
+#else
+					float4 startEndUV = _StartEndUV;
+#endif
+
+					o.startEndUV = startEndUV;
+
 					return o;
 				}
 
@@ -148,7 +158,7 @@
 				[UNITY_outputtopology("triangle_cw")]
 				[UNITY_patchconstantfunc("hsconst_quad_surf")]
 				[UNITY_outputcontrolpoints(4)]
-				[maxtessfactor(64.0f)]
+				//[maxtessfactor(64.0f)]
 				internalTessInterp_appdata hs_quad_surf(InputPatch<internalTessInterp_appdata, 4> v, uint id:SV_OutputControlPointID)
 				{
 					return v[id];
@@ -157,20 +167,14 @@
 				[UNITY_domain("quad")]
 				v2f ds_quad_surf(UnityTessellationQuadFactors tessFactors, const OutputPatch<internalTessInterp_appdata, 4> v, float2 uv:SV_DomainLocation)
 				{
-					UNITY_SETUP_INSTANCE_ID(v[0]);
 					v2f o;
 					o.vertex = lerp(lerp(v[0].vertex, v[1].vertex, uv.x), lerp(v[3].vertex, v[2].vertex, uv.x), uv.y);
 					o.uv = lerp(lerp(v[0].uv, v[1].uv, uv.x), lerp(v[3].uv, v[2].uv, uv.x), uv.y);
-					o.instanceID = lerp(lerp(v[0].instanceID, v[1].instanceID, uv.x), lerp(v[3].instanceID, v[2].instanceID, uv.x), uv.y);
+					o.instanceID = v[0].instanceID;
 
-#ifdef UNITY_INSTANCING_ENABLED
-					float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
-#else
-					float4 startEndUV = _StartEndUV;
-#endif
 					float2 heightUV;
-					heightUV.x = lerp(startEndUV.x, startEndUV.z, o.uv.x);
-					heightUV.y = lerp(startEndUV.y, startEndUV.w, o.uv.y);
+					heightUV.x = lerp(v[0].startEndUV.x, v[0].startEndUV.z, o.uv.x);
+					heightUV.y = lerp(v[0].startEndUV.y, v[0].startEndUV.w, o.uv.y);
 
 
 					//float2 alphaLimit = float2(0.5f / _ChunkPixelCount.z, 0.5f / _ChunkPixelCount.w);

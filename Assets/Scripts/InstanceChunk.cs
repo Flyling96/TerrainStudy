@@ -18,12 +18,15 @@ namespace CustomTerrain
         public Vector4 neighborVertexCount; //邻居一条边顶点数
         public InstanceChunk[] neighborChunk; //上下左右的块
 
-        public MeshCollider meshCollider; //地形块的碰撞体
-
         public Vector2 chunkSize;
 
         bool isShow = true;
         bool isNeedHide = false;
+
+        public void Init()
+        {
+            RemoveCollider();
+        }
 
         float DecodeHeight(Vector2 heightXY)
         {
@@ -54,19 +57,11 @@ namespace CustomTerrain
 
         public void InitCollider(Texture2D heightMap, float maxHeight, Vector2 pixelVertexPro)
         {
-            if (meshCollider == null)
+            if (GetComponent<MeshCollider>() == null)
             {
-                meshCollider = gameObject.GetComponent<MeshCollider>();
-                if (meshCollider == null)
-                {
-                    meshCollider = gameObject.AddComponent<MeshCollider>();
-                }
+                gameObject.AddComponent<MeshCollider>();
             }
 
-            if (meshCollider.sharedMesh!=null)
-            {
-                return;
-            }
 
             float[] heightArray = GetHeightDataByGpu(heightMap, maxHeight);
 
@@ -120,26 +115,16 @@ namespace CustomTerrain
             m_mesh.vertices = vertices;
             m_mesh.SetIndices(indices, MeshTopology.Quads, 0);
 
-            meshCollider.sharedMesh = m_mesh;
+            GetComponent<MeshCollider>().sharedMesh = m_mesh;
 
         }
 
         public void RemoveCollider()
         {
-            if(meshCollider == null)
+            if (GetComponent<MeshCollider>() != null)
             {
-                return;
+                DestroyImmediate(GetComponent<MeshCollider>());
             }
-
-            if (Application.isPlaying)
-            {
-                Destroy(meshCollider);
-            }
-            else
-            {
-                DestroyImmediate(meshCollider);
-            }
-            meshCollider = null;
         }
 
         public bool IsShow
