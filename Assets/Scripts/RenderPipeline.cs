@@ -20,9 +20,12 @@ public class RenderPipeline : MonoBehaviour
     public Matrix4x4 occlusionPrijectionMatrix;
     //public Matrix4x4 occlusionWorldToPrijection;
 
+    bool isInit = false;
+
     private void Awake()
     {
         instance = this;
+        isInit = true;
         mainCamera = gameObject.GetComponent<Camera>();
         mainCameraPos = mainCamera.transform.position;
         //mainCameraProjectionMatrix = mainCamera.projectionMatrix;
@@ -63,8 +66,11 @@ public class RenderPipeline : MonoBehaviour
 
     private void Update()
     {
-        mainCameraPos = mainCamera.transform.position;
-        InstanceMgr.instance.UpdateInstance();
+        if (isInit)
+        {
+            mainCameraPos = mainCamera.transform.position;
+            InstanceMgr.instance.UpdateInstance();
+        }
     }
 
     private void OnRenderObject()

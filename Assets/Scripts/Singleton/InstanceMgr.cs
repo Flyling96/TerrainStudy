@@ -8,14 +8,14 @@ using CustomTerrain;
 public class InstanceMgr : Singleton<InstanceMgr>
 {
 
-    public List<IInstance> InstanceList = new List<IInstance>();
+    public List<TerrainInstance> InstanceList = new List<TerrainInstance>();
 
     private void OnEnable()
     {
 
     }
 
-    public void Register(IInstance terrainInstance)
+    public void Register(TerrainInstance terrainInstance)
     {
         if(!InstanceList.Contains(terrainInstance))
         {
@@ -23,7 +23,7 @@ public class InstanceMgr : Singleton<InstanceMgr>
         }
     }
 
-    public void Remove(IInstance terrainInstance)
+    public void Remove(TerrainInstance terrainInstance)
     {
         if (!InstanceList.Contains(terrainInstance))
         {
@@ -35,13 +35,25 @@ public class InstanceMgr : Singleton<InstanceMgr>
     {
         for (int i = InstanceList.Count - 1; i > -1; i--)
         {
-            if (InstanceList[i] == null)
+            if (InstanceList[i] == null || InstanceList[i].transform == null)
             {
                 InstanceList.RemoveAt(i);
                 continue;
             }
             InstanceList[i].Draw();
         }
+    }
+
+    public TerrainInstance GetInstanceByPos(Vector3 pos)
+    {
+        for(int i=0;i<InstanceList.Count;i++)
+        {
+            if(InstanceList[i].IsInside(pos))
+            {
+                return InstanceList[i];
+            }
+        }
+        return null;
     }
 
     private void Update()

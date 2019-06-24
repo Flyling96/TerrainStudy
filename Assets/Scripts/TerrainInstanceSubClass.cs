@@ -96,7 +96,7 @@ namespace CustomTerrain
         [SerializeField]
         protected Mesh mesh;
         [SerializeField]
-        protected int chunkCountX = 0;
+        public int chunkCountX = 0;
         [SerializeField]
         protected int chunkCountZ = 0;
         [SerializeField]
@@ -115,11 +115,6 @@ namespace CustomTerrain
 
         protected virtual void OnEnable()
         {
-            InstanceMgr.instance.Register(this);
-            if (mat == null)
-            {
-                Init();
-            }
         }
 
         //protected virtual void OnDisable()
@@ -154,9 +149,9 @@ namespace CustomTerrain
                     int index = j * countX + i;
                     instanceChunkGos[index] = new GameObject(transform.name + "_chunk" + index);
                     instanceChunkGos[index].transform.SetParent(this.transform);
+                    instanceChunkGos[index].transform.localScale = Vector3.one;
                     instanceChunkGos[index].transform.position = transform.position + new Vector3(i * tChunkWidth, 0, j * tChunkLength);
                     instanceChunkGos[index].transform.rotation = rotation;
-                    instanceChunkGos[index].transform.localScale = Vector3.one;
                 }
             }
         }

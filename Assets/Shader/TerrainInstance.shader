@@ -204,9 +204,9 @@
 					return uv;
 				}
 
-				float4 GetAlphaColor(float4 alphaTexIndexs, float2 uv)
+				float4 GetAlphaColor(float4 alphaTexIndexs, float2 weightUV, float2 uv)
 				{
-					float4 weight = tex2D(_AlphaMap, uv);
+					float4 weight = tex2D(_AlphaMap, weightUV);
 					//return weight;
 					float4 color = UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.x), alphaTexIndexs.x)) * weight.x * step(0, alphaTexIndexs.x)+
 						UNITY_SAMPLE_TEX2DARRAY(_TerrainMapArray, float3(GetRealUV(uv, alphaTexIndexs.y), alphaTexIndexs.y)) * weight.y * step(0, alphaTexIndexs.y) +
@@ -236,6 +236,10 @@
 					float4 startEndUV = _StartEndUV;
 #endif
 
+					float2 uv;
+					uv.x = lerp(startEndUV.x, startEndUV.z, i.uv.x);
+					uv.y = lerp(startEndUV.x, startEndUV.z, i.uv.y);
+
 					float2 alphaLimit = float2(0.5f / _ChunkPixelCount.z, 0.5f / _ChunkPixelCount.w);
 					i.uv.x = i.uv.x * step(alphaLimit.x, i.uv.x) + alphaLimit.x * (1 - step(alphaLimit.x, i.uv.x));
 					i.uv.x = i.uv.x * step(i.uv.x,1-alphaLimit.x) + (1-alphaLimit.x) * (1 - step(i.uv.x, 1 - alphaLimit.x));
@@ -259,7 +263,7 @@
 					//uv.y = uv.y * step(alphaLimit.y, uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, uv.y));
 					//uv.y = uv.y * step(uv.y, 1 - alphaLimit.y) + (1 - alphaLimit.y) * (1 - step(uv.y, 1 - alphaLimit.y));
 
-					float4 col = GetAlphaColor(alphaTexIndexs,i.uv);
+					float4 col = GetAlphaColor(alphaTexIndexs,i.uv,uv);
 					return col;
 				}
 

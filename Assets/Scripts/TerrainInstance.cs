@@ -8,14 +8,47 @@ namespace CustomTerrain
     [ExecuteInEditMode]
     public class TerrainInstance : TerrainInstanceSubClass
     {
-        [SerializeField]
-        private InstanceChunk[] instanceChunks;
+        public InstanceChunk[] instanceChunks;
+
+        public TerrainInstance[] neighborInstance = new TerrainInstance[4];//上下左右
 
         public int instanceIndex;
 
+        public Vector2 InstanceSize
+        {
+            get
+            {
+                return new Vector2(chunkCountX * chunkSize.x, chunkCountZ * chunkSize.y);
+            }
+        }
+
+        public void RefreshNeighborChunk()
+        {
+            if (neighborInstance[0] != null)//上
+            {
+                for (int i = 0; i < chunkCountX; i++)
+                {
+                    int index = (chunkCountZ - 1) * chunkCountX + i;
+                    int neighborIndex = i;
+                    instanceChunks[index].neighborChunk[0] = neighborInstance[0].instanceChunks[neighborIndex];
+                    neighborInstance[0].instanceChunks[neighborIndex].neighborChunk[1] = instanceChunks[index];
+                }
+            }
+            else if (neighborInstance[3] != null)//右
+            {
+                for (int i = 0; i < chunkCountZ; i++)
+                {
+                    int index = (i + 1) * chunkCountX - 1;
+                    int neighborIndex = i * chunkCountX;
+                    instanceChunks[index].neighborChunk[3] = neighborInstance[3].instanceChunks[neighborIndex];
+                    neighborInstance[3].instanceChunks[neighborIndex].neighborChunk[2] = instanceChunks[index];
+                }
+            }
+        }
+
         public override void InitData(int tInstanceIndex, Mesh tempMesh, int countX, int countZ, int tChunkWidth, int tChunkLength, Quaternion rotation, Vector4[] tAlphaTexIndexs, Vector2[] tMinAndMaxHeight, Vector4[] startEndUVs)
         {
-            base.InitData(instanceIndex,tempMesh, countX, countZ, tChunkWidth, tChunkLength, rotation, tAlphaTexIndexs, tMinAndMaxHeight, startEndUVs);
+            base.InitData(instanceIndex, tempMesh, countX, countZ, tChunkWidth, tChunkLength, rotation, tAlphaTexIndexs, tMinAndMaxHeight, startEndUVs);
             instanceChunks = new InstanceChunk[chunkCount];
             int index = 0;
             Matrix4x4 matr;
@@ -68,7 +101,7 @@ namespace CustomTerrain
 
         void InitChunk()
         {
-            for(int i=0;i<instanceChunks.Length;i++)
+            for (int i = 0; i < instanceChunks.Length; i++)
             {
                 instanceChunks[i].Init();
             }
@@ -93,7 +126,7 @@ namespace CustomTerrain
                 prop = new MaterialPropertyBlock();
             }
 
-            if(mat == null)
+            if (mat == null)
             {
                 Debug.Log("Mat is Null");
                 InitMat();
@@ -417,7 +450,7 @@ namespace CustomTerrain
         {
             inputBuffer = new ComputeBuffer(instanceChunks.Length, 24);
             resultBuffer = new ComputeBuffer(instanceChunks.Length, 4);
-            debugBuffer = new ComputeBuffer(instanceChunks.Length,128);
+            debugBuffer = new ComputeBuffer(instanceChunks.Length, 128);
 
             viewOccusionCS = RenderPipeline.instance.terrainViewOccusionCS;
 
@@ -455,11 +488,15 @@ namespace CustomTerrain
 
         public InstanceChunk GetChunkByPos(Vector3 pos)
         {
+            if (transform == null)
+            {
+                return null;
+            }
             Vector3 relativePos = pos - transform.position;
             int x = (int)(relativePos.x / chunkSize.x);
             int z = (int)(relativePos.z / chunkSize.y);
             int index = z * chunkCountX + x;
-            if(index < 0 ||index > instanceChunks.Length - 1)
+            if (index < 0 || index > instanceChunks.Length - 1)
             {
                 return null;
             }
@@ -478,7 +515,7 @@ namespace CustomTerrain
                 inputBuffer.Release();
             }
 
-            if(debugBuffer !=null)
+            if (debugBuffer != null)
             {
                 debugBuffer.Release();
             }
@@ -486,8 +523,19 @@ namespace CustomTerrain
 
         protected override void OnEnable()
         {
-            base.OnEnable();
+            InstanceMgr.instance.Register(this);
+            if (mat == null)
+            {
+                Init();
+            }
+
             TerrainDataMgr.instance.Register(this);
+        }
+
+        public bool IsInside(Vector3 pos)
+        {
+            return pos.x >= transform.position.x && pos.x < transform.position.x + InstanceSize.x &&
+                pos.z >= transform.position.z && pos.z < transform.position.z + InstanceSize.y;
         }
 
         //protected override void OnDisable()

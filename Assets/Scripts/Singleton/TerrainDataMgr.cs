@@ -38,11 +38,14 @@ namespace CustomTerrain
         {
             if(insideTerrainInstance == null)
             {
-                insideTerrainInstance = (TerrainInstance)InstanceMgr.instance.InstanceList[0];
+                insideTerrainInstance = InstanceMgr.instance.GetInstanceByPos(pos);
             }
+            if (insideTerrainInstance == null) return null;
 
             return insideTerrainInstance.GetChunkByPos(pos);
         }
+
+
 
         private void Update()
         {
@@ -51,8 +54,8 @@ namespace CustomTerrain
 
         void RefreshCollider()
         {
-            if (!terrainInstanceDic.ContainsKey(0) || RenderPipeline.instance == null) return;
-            insideTerrainInstance = terrainInstanceDic[0];
+            if (RenderPipeline.instance == null) return;
+            //insideTerrainInstance = terrainInstanceDic[0];
             InstanceChunk tempInstanceChunk = GetInsideChunk(RenderPipeline.instance.mainCameraPos);
             if(tempInstanceChunk == insideInstanceChunk && needColliderChunkList.Contains(tempInstanceChunk)|| tempInstanceChunk == null)
             {
@@ -123,14 +126,48 @@ namespace CustomTerrain
                 }
             }
 
+            //List<InstanceChunk> newColliderChunkList = new List<InstanceChunk>();
 
-            for (int i=0;i< needColliderChunkList.Count;i++)
+            //for (int i = 0; i < needColliderChunkList.Count; i++)
+            //{
+            //    if (needColliderChunkList[i] != null )
+            //    {
+            //       if(needColliderChunkList[i].GetComponent<MeshCollider>() == null || 
+            //            needColliderChunkList[i].GetComponent<MeshCollider>().sharedMesh == null)
+            //        {
+            //            newColliderChunkList.Add(needColliderChunkList[i]);
+            //        }
+            //    }
+            //}
+
+            //if (newColliderChunkList.Count > 0)
+            //{
+            //    StartCoroutine(RefreshChunkColloder(newColliderChunkList));
+            //}
+            for (int i = 0; i < needColliderChunkList.Count; i++)
             {
                 if (needColliderChunkList[i] != null)
                 {
                     if (terrainInstanceDic.ContainsKey(needColliderChunkList[i].instanceIndex))
                     {
                         terrainInstanceDic[needColliderChunkList[i].instanceIndex].RefreshChunkCollider(needColliderChunkList[i].chunkIndex);
+                    }
+                }
+            }
+        }
+
+        //分帧刷新
+        IEnumerator RefreshChunkColloder(List<InstanceChunk> newColliderChunkList)
+        {
+            for (int i = 0; i < newColliderChunkList.Count; i++)
+            {
+                if (newColliderChunkList[i] != null)
+                {
+                    if (terrainInstanceDic.ContainsKey(newColliderChunkList[i].instanceIndex))
+                    {
+                        terrainInstanceDic[newColliderChunkList[i].instanceIndex].RefreshChunkCollider(newColliderChunkList[i].chunkIndex);
+                        yield return null;
+                        yield return null;
                     }
                 }
             }

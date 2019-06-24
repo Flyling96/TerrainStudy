@@ -62,6 +62,11 @@ namespace CustomTerrain
                 gameObject.AddComponent<MeshCollider>();
             }
 
+            if(GetComponent<MeshCollider>().sharedMesh != null)
+            {
+                return;
+            }
+
 
             float[] heightArray = GetHeightDataByGpu(heightMap, maxHeight);
 
@@ -111,11 +116,14 @@ namespace CustomTerrain
             }
 
             Mesh m_mesh = new Mesh();
-            m_mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            m_mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt16;
             m_mesh.vertices = vertices;
             m_mesh.SetIndices(indices, MeshTopology.Quads, 0);
 
             GetComponent<MeshCollider>().sharedMesh = m_mesh;
+
+
+            //GetComponent<MeshCollider>().cookingOptions = MeshColliderCookingOptions.None;
 
         }
 
