@@ -8,6 +8,7 @@
 		_MaxHeight("Max Height",Float) = 100.0
 		_TerrainMapArray("Terrain Map Array",2DArray) = "white" {}
 		_AlphaMap("Alpha Map",2D) = "white" {}
+		_TerrainBigMap("Terrain Big Map",2D) = "white" {}
 
 	}
 		SubShader
@@ -53,10 +54,15 @@
 				sampler2D _HeightNormalTex;
 				float _MaxHeight;
 				sampler2D _AlphaMap;
-				uniform float4 _TerrainMapSize[30];
-				uniform float4 _ChunkPixelCount;
-				uniform float4 _MapSize;
+				float4 _TerrainMapSize[16];
+				float4 _ChunkPixelCount;
+				float4 _MapSize;
 				UNITY_DECLARE_TEX2DARRAY(_TerrainMapArray);
+
+				sampler2D _TerrainBigMap;
+				float _IsTerrainBigMap;
+				float4 _TerrainBigMapChunkUV[16];
+
 
 #ifdef UNITY_INSTANCING_ENABLED
 				UNITY_INSTANCING_BUFFER_START(TerrainProps)
@@ -216,6 +222,28 @@
 					return color;
 				}
 
+				float4 GetBigMapColor(float2 uv,float index)
+				{
+					float4 bigMapChunkUV = _TerrainBigMapChunkUV[index];
+					float2 realUV;
+					realUV.x = lerp(bigMapChunkUV.x, bigMapChunkUV.z, uv.x%1);
+					realUV.y = lerp(bigMapChunkUV.y, bigMapChunkUV.w, uv.y%1);
+
+					//float4 color = tex2D(_TerrainBigMap, realUV);
+					return tex2D(_TerrainBigMap, realUV);
+				}
+
+				float4 GetAlphaColorByBigMap(float4 alphaTexIndexs, float2 weightUV, float2 uv)
+				{
+					//return float4(alphaTexIndexs.x, 0, 0, 1);
+					float4 weight = tex2D(_AlphaMap, weightUV);
+					float4 color = GetBigMapColor(GetRealUV(uv, alphaTexIndexs.x), alphaTexIndexs.x) * weight.x * step(0, alphaTexIndexs.x) +
+						GetBigMapColor(GetRealUV(uv, alphaTexIndexs.y), alphaTexIndexs.y) * weight.y * step(0, alphaTexIndexs.y) +
+						GetBigMapColor(GetRealUV(uv, alphaTexIndexs.z), alphaTexIndexs.z) * weight.z * step(0, alphaTexIndexs.z) +
+						GetBigMapColor(GetRealUV(uv, alphaTexIndexs.w), alphaTexIndexs.w) * weight.w * step(0, alphaTexIndexs.w);
+					return color;
+				}
+
 				//float GetMipMapLevel(float2 uv) // in texel units
 				//{
 				//	float2  dx = ddx(uv);
@@ -262,8 +290,9 @@
 					//uv.x = uv.x * step(uv.x, 1 - alphaLimit.x) + (1 - alphaLimit.x) * (1 - step(uv.x, 1 - alphaLimit.x));
 					//uv.y = uv.y * step(alphaLimit.y, uv.y) + alphaLimit.y * (1 - step(alphaLimit.y, uv.y));
 					//uv.y = uv.y * step(uv.y, 1 - alphaLimit.y) + (1 - alphaLimit.y) * (1 - step(uv.y, 1 - alphaLimit.y));
+					float4 col = step(_IsTerrainBigMap,0) * GetAlphaColor(alphaTexIndexs,i.uv,uv)
+						+ (1 - step( _IsTerrainBigMap,0)) * GetAlphaColorByBigMap(alphaTexIndexs, i.uv, uv);
 
-					float4 col = GetAlphaColor(alphaTexIndexs,i.uv,uv);
 					return col;
 				}
 

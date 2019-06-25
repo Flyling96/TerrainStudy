@@ -21,8 +21,12 @@ namespace TerrainEditor
         bool isSaveCPUMesh = false;
         bool isSaveGPUMesh = true;
         bool isGPUInstance = true;
+#if UseTerrainECS
         bool isChunkECS = false;
+#endif
         bool isDivideMaterial = false;
+        //bool isMergeMap = true;
+        const int mergeMapMaxCount = 16;
         int chunkWidth = 1000; //块宽度（单位米）
         int chunkLength = 1000; //块长度 （单位米）
         int chunkQuadCountX = 100; //块中横向网格数
@@ -54,7 +58,7 @@ namespace TerrainEditor
             {
 #if UseTerrainECS
                 isChunkECS = EditorGUILayout.Toggle("是否采用 ECS", isChunkECS);
-#endif        
+#endif
                 chunkWidth = EditorGUILayout.IntField("块宽度(X)", chunkWidth);
                 chunkLength = EditorGUILayout.IntField("块长度(Z)", chunkLength);
                 chunkQuadCountX = 1;
@@ -67,6 +71,7 @@ namespace TerrainEditor
             if (isSaveGPUMesh)
             {
                 isDivideMaterial = EditorGUILayout.Toggle("划分块材质", isDivideMaterial);
+                //isMergeMap = EditorGUILayout.Toggle("是否合并贴图", isMergeMap);
             }
 
             return true;
@@ -402,7 +407,7 @@ namespace TerrainEditor
 
         void SaveHeightNormalMap()
         {
-            EditorUtility.DisplayProgressBar("保存高度法线图", "保存高度法线图:0/1", 0);
+            EditorUtility.DisplayProgressBar("保存高度法线图 " + instanceName, "保存高度法线图:0/1", 0);
 
             string imageName = instanceName + "_Total_HeightNormalMap.png";
 
@@ -786,7 +791,7 @@ namespace TerrainEditor
 #region 保存 Prefab
         void SaveTotalPrefab()
         {
-            EditorUtility.DisplayProgressBar("保存地形Prefab", "保存地形Prefab: 0/1", 0);
+            EditorUtility.DisplayProgressBar("保存地形Prefab " + instanceName, "保存地形Prefab: 0/1", 0);
             string prefabName = instanceName + "_Total_Terrain.prefab";
             string meshName = instanceName + "_Terrain_Mesh.asset";
             string matName = instanceName + "_Total_Mat.mat";
@@ -813,7 +818,7 @@ namespace TerrainEditor
                 {
                     index = j * chunkCountX + i + 1;
                     chunkPath = path + "/Chunks/Chunk_" + index;
-                    EditorUtility.DisplayProgressBar("保存地形块Prefab", "保存地形块Prefab:" + index + "/" + chunkCountX * chunkCountZ, (float)index / (chunkCountX * chunkCountZ));
+                    EditorUtility.DisplayProgressBar("保存地形块Prefab "+ instanceName, "保存地形块Prefab:" + index + "/" + chunkCountX * chunkCountZ, (float)index / (chunkCountX * chunkCountZ));
                     childPrefab = GetTerrainPrefab(chunkPath, meshName, string.Format(matName, index), string.Format(prefabName, index));
                     childPrefab.name = string.Format(prefabName, index).Replace(".prefab", "");
                     childPrefab.transform.parent = prefab.transform;
@@ -883,11 +888,12 @@ namespace TerrainEditor
         Vector4[] alphaWeightArray;
         Vector4[] alphaTexIndexArray;
         Texture2DArray terrainMapArray;
+        Texture2D terrainBigMap;
         Texture2D[] terrainTexArray;
         Vector4[] terrainMapSize;
         void SaveAlphaMap()
         {
-            EditorUtility.DisplayProgressBar("保存权重图", "保存权重图:0/1", 0);
+            EditorUtility.DisplayProgressBar("保存权重图 " + instanceName, "保存权重图:0/1", 0);
 
             alphaWeightArray = new Vector4[alphaMapWidth * alphaMapHeight];
             alphaTexIndexArray = new Vector4[chunkCountX * chunkCountZ];
@@ -910,13 +916,12 @@ namespace TerrainEditor
                 }
             }
 
-
             GetAlphaMapTextureArray();
 
             string imageName = instanceName + "_Total_AlphaMap.png";
 
             Texture2D alphaMapTex = new Texture2D(alphaMapWidth, alphaMapHeight, TextureFormat.RGBA32, false);
-            //权重图采用双线性滤波
+            //权重图采用双向滤波
             alphaMapTex.filterMode = FilterMode.Bilinear;
             Vector4 alphaWeight;
             int alphaWeightIndex;
@@ -935,11 +940,11 @@ namespace TerrainEditor
             byte[] rawData = alphaMapTex.EncodeToPNG();
             File.WriteAllBytes(totalPath + "/" + imageName, rawData);
 
-            string arrayName = instanceName + "_Total_AlphaMapTextures.Asset";
-            if (terrainMapArray != null)
-            {
-                AssetDatabase.CreateAsset(terrainMapArray, assetsPath + "/" + arrayName);
-            }
+            //string arrayName = instanceName + "_Total_AlphaMapTextures.Asset";
+            //if (terrainMapArray != null)
+            //{
+            //    AssetDatabase.CreateAsset(terrainMapArray, assetsPath + "/" + arrayName);
+            //}
 
             AssetDatabase.Refresh();
 
@@ -1028,17 +1033,14 @@ namespace TerrainEditor
             terrainTexArray = new Texture2D[data.terrainLayers.Length];
 
             Texture2D alphaMapTexture = data.terrainLayers[0].diffuseTexture;
-            terrainMapArray = new Texture2DArray(alphaMapTexture.width, alphaMapTexture.height, data.terrainLayers.Length, alphaMapTexture.format, true);
+            //terrainMapArray = new Texture2DArray(alphaMapTexture.width, alphaMapTexture.height, data.terrainLayers.Length, alphaMapTexture.format, true);
             for (int i = 0; i < data.terrainLayers.Length; i++)
             {
                 terrainTexArray[i] = data.terrainLayers[i].diffuseTexture;
-                terrainMapArray.SetPixels(data.terrainLayers[i].diffuseTexture.GetPixels(), i, 0);
+                //terrainMapArray.SetPixels(data.terrainLayers[i].diffuseTexture.GetPixels(), i, 0);
                 terrainMapSize[i] = new Vector4(data.terrainLayers[i].tileSize.x, data.terrainLayers[i].tileSize.y,
                     data.terrainLayers[i].tileOffset.x, data.terrainLayers[i].tileOffset.y);
             }
-
-
-
         }
 
         void SetVector4(ref Vector4 target, int index, float value)
@@ -1114,11 +1116,11 @@ namespace TerrainEditor
             path = assetsPath + "/" + instanceName + "_Total_AlphaMap.png";
             Texture2D aTex = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2D)) as Texture2D;
             path = assetsPath + "/" + instanceName + "_Total_AlphaMapTextures.Asset";
-            Texture2DArray tMapArray = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2DArray)) as Texture2DArray;
+            //Texture2DArray tMapArray = AssetDatabase.LoadAssetAtPath(path, typeof(Texture2DArray)) as Texture2DArray;
 
             Vector4 chunkPixelCount = new Vector4(chunkHeightPixelCountX, chunkHeightPixelCountZ, chunkAlphaPixelCountX, chunkAlphaPixelCountZ);
 
-            terrainInstance.SetMatData(hnTex, data.size.y, aTex, tMapArray, terrainTexArray, terrainMapSize, chunkPixelCount);
+            terrainInstance.SetMatData(hnTex, data.size.y, aTex, terrainTexArray, terrainMapSize, chunkPixelCount);
 
             string meshName = instanceName + "_Chunk_Mesh.asset";
             Mesh mesh = AssetDatabase.LoadAssetAtPath(assetsPath + "/" + meshName, typeof(Mesh)) as Mesh;

@@ -12,8 +12,8 @@ namespace CustomTerrain
         Texture2D heightNormalTex;      //高度法线图
         [SerializeField]
         Texture2D alphaMap;             //权重图
-        [SerializeField]
-        Texture2DArray terrainMapArray; //地形贴图数组
+        //[SerializeField]
+        //Texture2DArray terrainMapArray; //地形贴图数组
         [SerializeField]
         Texture2D[] terrainTexArray;    //地形贴图数组
         [SerializeField]
@@ -47,13 +47,13 @@ namespace CustomTerrain
             }
         }
 
-        public Texture2DArray TerrainMapArray
-        {
-            get
-            {
-                return terrainMapArray;
-            }
-        }
+        //public Texture2DArray TerrainMapArray
+        //{
+        //    get
+        //    {
+        //        return terrainMapArray;
+        //    }
+        //}
 
         public Texture2D[] TerrainTexArray
         {
@@ -79,12 +79,12 @@ namespace CustomTerrain
             }
         }
 
-        public void SetValue(Texture2D hnTex, float max, Texture2D aTex, Texture2DArray tMapArray, Texture2D[] tTexArray, Vector4[] tMapSize, Vector4 cPixelCount)
+        public void SetValue(Texture2D hnTex, float max, Texture2D aTex, Texture2D[] tTexArray, Vector4[] tMapSize, Vector4 cPixelCount)
         {
             heightNormalTex = hnTex;
             maxHeight = max;
             alphaMap = aTex;
-            terrainMapArray = tMapArray;
+            //terrainMapArray = tMapArray;
             terrainTexArray = tTexArray;
             terrainMapTiling = tMapSize;
             chunkPixelCount = cPixelCount;
@@ -122,13 +122,13 @@ namespace CustomTerrain
         //    InstanceMgr.instance.Remove(this);
         //}
 
-        public void SetMatData(Texture2D tex, float max, Texture2D aTex, Texture2DArray tMapArray, Texture2D[] tTexArray, Vector4[] tMapSize, Vector4 cPixelCount)
+        public void SetMatData(Texture2D tex, float max, Texture2D aTex, Texture2D[] tTexArray, Vector4[] tMapSize, Vector4 cPixelCount)
         {
             if (matData == null)
             {
                 matData = new MatData();
             }
-            matData.SetValue(tex, max, aTex, tMapArray, tTexArray, tMapSize, cPixelCount);
+            matData.SetValue(tex, max, aTex, tTexArray, tMapSize, cPixelCount);
         }
 
         public virtual void InitData(int tInstanceIndex, Mesh tempMesh, int countX, int countZ, int tChunkWidth, int tChunkLength, Quaternion rotation, Vector4[] tAlphaTexIndexs, Vector2[] tMinAndMaxHeight, Vector4[] startEndUVs)

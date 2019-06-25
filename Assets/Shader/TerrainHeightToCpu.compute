@@ -1,0 +1,46 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#define thread_group_x 8
+
+#define thread_group_y 8
+
+#define thread_x 8
+
+#define thread_y 8
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+float4 StartEndUV;
+float VertexCount;
+float MaxHeight;
+Texture2D HeightNormalTex;
+SamplerState samplerHeightNormalTex;
+
+RWStructuredBuffer<float> HeightArray;
+
+float DecodeHeight(float2 heightXY)
+{
+	float2 decodeDot = float2(1.0f, 1.0f / 255.0f);
+	return dot(heightXY, decodeDot);
+}
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	int index = id.x + (id.y * thread_x * thread_group_x) + (id.z * thread_group_x * thread_group_y * thread_x * thread_y);
+	int x = id.x + id.z * thread_group_x * thread_x;
+	int y = id.y + id.z * thread_group_y * thread_y;
+
+	float xRatio = (float)x / (VertexCount - 1);
+	float yRatio = (float)y / (VertexCount - 1);
+
+	float2 heightUV;
+	heightUV.x = lerp(StartEndUV.x, StartEndUV.z, xRatio);
+	heightUV.y = lerp(StartEndUV.y, StartEndUV.w, yRatio);
+
+	float2 heightTex = HeightNormalTex.SampleLevel(samplerHeightNormalTex, heightUV,0);//tex2D(HeightNormalTex, heightUV).rg;
+	float height = DecodeHeight(heightTex) * MaxHeight;
+	HeightArray[index] = height;
+}

@@ -112,7 +112,17 @@ namespace CustomTerrain
 
             if (mat != null && matData != null)
             {
-                mat.SetTexture("_TerrainMapArray", terrainMapArray);
+                if (!isUseBigTex)
+                {
+                    mat.SetTexture("_TerrainMapArray", terrainMapArray);
+                    mat.SetFloat("_IsTerrainBigMap", -1);
+                }
+                else
+                {
+                    mat.SetTexture("_TerrainBigMap", terrainBigMap);
+                    mat.SetVectorArray("_TerrainBigMapChunkUV",terrainBipMapUV);
+                    mat.SetFloat("_IsTerrainBigMap", 1);
+                }
                 mat.SetVectorArray("_TerrainMapSize", terrainMapTilingList.ToArray());
             }
 
@@ -214,7 +224,11 @@ namespace CustomTerrain
 
         int showChunkCount = 0;
 
-        const int maxTerrainMapArrayCount = 10;
+        const int maxTerrainMapLineCount = 4;//单行列最大图数
+        const int maxTerrainBigMapSize = 4096;
+        public bool isUseBigTex = false;
+        Texture2D terrainBigMap;
+        List<Vector4> terrainBipMapUV = new List<Vector4>();
 
         //cpu剔除块
         void ViewOcclusionByCPU()
@@ -320,47 +334,116 @@ namespace CustomTerrain
             useAlphaTexIndexList.Remove(-1);
 
 
-            if (terrainMapArray == null)
+            if (!isUseBigTex)
             {
-                Texture2D terrainTex = matData.TerrainTexArray[0];
-                terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, maxTerrainMapArrayCount, terrainTex.format, true);
-                terrainMapArrayIndexList.Clear();
-                for (int i = 0; i < maxTerrainMapArrayCount; i++)
+                if (terrainMapArray == null)
                 {
-                    terrainMapArrayIndexList.Add(-1);
-                    terrainMapTilingList.Add(new Vector4(1, 1, 0, 0));
-                }
-            }
-
-            bool isTerrainMapArrayChange = false;
-
-            for (int i = 0; i < useAlphaTexIndexList.Count; i++)
-            {
-                if (!terrainMapArrayIndexList.Contains(useAlphaTexIndexList[i]))
-                {
-                    for (int j = 0; j < terrainMapArrayIndexList.Count; j++)
+                    Texture2D terrainTex = matData.TerrainTexArray[0];
+                    terrainMapArray = new Texture2DArray(terrainTex.width, terrainTex.height, maxTerrainMapLineCount * maxTerrainMapLineCount, terrainTex.format, true);
+                    terrainMapArrayIndexList.Clear();
+                    terrainMapTilingList.Clear();
+                    for (int i = 0; i < maxTerrainMapLineCount * maxTerrainMapLineCount; i++)
                     {
-                        if (terrainMapArrayIndexList[j] == -1)
+                        terrainMapArrayIndexList.Add(-1);
+                        terrainMapTilingList.Add(new Vector4(1, 1, 0, 0));
+                    }
+                }
+
+                bool isTerrainMapArrayChange = false;
+
+                for (int i = 0; i < useAlphaTexIndexList.Count; i++)
+                {
+                    if (!terrainMapArrayIndexList.Contains(useAlphaTexIndexList[i]))
+                    {
+                        for (int j = 0; j < terrainMapArrayIndexList.Count; j++)
                         {
-                            terrainMapArrayIndexList[j] = useAlphaTexIndexList[i];
-                            terrainMapArray.SetPixels(matData.TerrainTexArray[useAlphaTexIndexList[i]].GetPixels(), j);
-                            terrainMapTilingList[j] = matData.TerrainMapTiling[useAlphaTexIndexList[i]];
-                            isTerrainMapArrayChange = true;
-                            break;
+                            if (terrainMapArrayIndexList[j] == -1)
+                            {
+                                terrainMapArrayIndexList[j] = useAlphaTexIndexList[i];
+                                terrainMapArray.SetPixels(matData.TerrainTexArray[useAlphaTexIndexList[i]].GetPixels(), j);
+                                terrainMapTilingList[j] = matData.TerrainMapTiling[useAlphaTexIndexList[i]];
+                                isTerrainMapArrayChange = true;
+                                break;
+                            }
                         }
                     }
                 }
-            }
 
-            if (isTerrainMapArrayChange)
+                if (isTerrainMapArrayChange)
+                {
+                    terrainMapArray.Apply();
+                }
+            }
+            else
             {
-                terrainMapArray.Apply();
+                if(terrainBigMap == null)
+                {
+                    Texture2D terrainTex = matData.TerrainTexArray[0];
+                    terrainBigMap = new Texture2D(terrainTex.width * maxTerrainMapLineCount > maxTerrainBigMapSize? maxTerrainBigMapSize: (terrainTex.width * maxTerrainMapLineCount),
+                        terrainTex.height * maxTerrainMapLineCount > maxTerrainBigMapSize ? maxTerrainBigMapSize : (terrainTex.height * maxTerrainMapLineCount),
+                        terrainTex.format,true);
+                    terrainBigMap.filterMode = FilterMode.Bilinear;
+
+                    terrainMapArrayIndexList.Clear();
+                    terrainMapTilingList.Clear();
+                    terrainBipMapUV.Clear();
+                    for (int i = 0; i < maxTerrainMapLineCount * maxTerrainMapLineCount; i++)
+                    {
+                        terrainMapArrayIndexList.Add(-1);
+                        terrainMapTilingList.Add(new Vector4(1, 1, 0, 0));
+                    }
+
+                    int maxTextureCount = matData.TerrainTexArray.Length > maxTerrainMapLineCount * maxTerrainMapLineCount ?
+                        maxTerrainMapLineCount * maxTerrainMapLineCount : matData.TerrainTexArray.Length;
+
+                    float uvPro = 1.0f / maxTerrainMapLineCount;
+                    for (int i = 0;i< maxTextureCount; i++)
+                    {
+                        //向内收缩半像素
+                        float minUVX = 0.0f / terrainBigMap.width;
+                        float minUVY = 0.0f / terrainBigMap.height;
+
+                        int bigIndexX = i % maxTerrainMapLineCount;
+                        int bigIndexY = i / maxTerrainMapLineCount;
+
+                        terrainBipMapUV.Add(new Vector4(bigIndexX * uvPro + minUVX, bigIndexY * uvPro + minUVY,
+                            (bigIndexX + 1) * uvPro - minUVX, (bigIndexY + 1) * uvPro - minUVY));
+                    }
+
+                }
+
+                bool isTerrainBigMapChange = false;
+
+                for (int i = 0; i < useAlphaTexIndexList.Count; i++)
+                {
+                    if (!terrainMapArrayIndexList.Contains(useAlphaTexIndexList[i]))
+                    {
+                        for (int j = 0; j < terrainMapArrayIndexList.Count; j++)
+                        {
+                            if (terrainMapArrayIndexList[j] == -1)
+                            {
+                                terrainMapArrayIndexList[j] = useAlphaTexIndexList[i];
+                                //terrainMapArray.SetPixels(matData.TerrainTexArray[useAlphaTexIndexList[i]].GetPixels(), j);
+                                InsertTexToBigTex(matData.TerrainTexArray[useAlphaTexIndexList[i]], j);
+                                terrainMapTilingList[j] = matData.TerrainMapTiling[useAlphaTexIndexList[i]];
+                                isTerrainBigMapChange = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (isTerrainBigMapChange)
+                {
+                    terrainBigMap.Apply();
+                }
+
             }
 
             //当TerrainMapArray中没有空位了，清除一下没有用到的Texture
             if (!terrainMapArrayIndexList.Contains(-1))
             {
-                for (int i = 0; i < maxTerrainMapArrayCount; i++)
+                for (int i = 0; i < maxTerrainMapLineCount * maxTerrainMapLineCount; i++)
                 {
                     if (!useAlphaTexIndexList.Contains(terrainMapArrayIndexList[i]))
                     {
@@ -443,6 +526,27 @@ namespace CustomTerrain
             //}
 
         }
+
+        void InsertTexToBigTex(Texture2D tex,int index)
+        {
+            int indexX = index % maxTerrainMapLineCount;
+            int indexY = index / maxTerrainMapLineCount;
+
+            int bigMapChunkWidth = terrainBigMap.width / maxTerrainMapLineCount;
+            int bigMapChunkHeight = terrainBigMap.height / maxTerrainMapLineCount;
+
+            //当一张图太大，加进bigMap时会进行压缩
+            for (int j = 0; j < tex.height; j++)
+            {
+                int bigTexY = indexY * bigMapChunkHeight + (int)(j * bigMapChunkHeight / (float)tex.height);
+                for (int i = 0; i < tex.width; i++)
+                {
+                    int bigTexX = indexX * bigMapChunkWidth + (int)(i * bigMapChunkWidth / (float)tex.width);
+                    terrainBigMap.SetPixel(bigTexX, bigTexY, tex.GetPixel(i, j));
+                }
+            }
+        }
+
         #endregion
 
         #region 初始化相关
