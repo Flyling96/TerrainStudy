@@ -8,7 +8,7 @@
 		_MaxHeight("Max Height",Float) = 100.0
 		_TerrainMapArray("Terrain Map Array",2DArray) = "white" {}
 		_AlphaMap("Alpha Map",2D) = "white" {}
-		_TerrainBigMap("Terrain Big Map",2D) = "white" {}
+		_TerrainBigMap("Terrain Big Map",2D) = "black" {}
 
 	}
 		SubShader
