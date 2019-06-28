@@ -86,9 +86,14 @@
 				internalTessInterp_appdata vert(appdata v)
 				{
 					internalTessInterp_appdata o;
+#ifdef UNITY_INSTANCING_ENABLED
 					UNITY_SETUP_INSTANCE_ID(v);
-					//UNITY_TRANSFER_INSTANCE_ID(v, o);
-					o.instanceID = v.instanceID;
+					UNITY_TRANSFER_INSTANCE_ID(v, o);
+					float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
+#else
+					float4 startEndUV = _StartEndUV;
+#endif
+					//o.instanceID = v.instanceID;
 //#ifdef UNITY_INSTANCING_ENABLED
 //					float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
 //#else
@@ -110,15 +115,14 @@
 					//o.vertex = mul(UNITY_MATRIX_VP, worldPos);
 					o.vertex = worldPos;
 
-#ifdef UNITY_INSTANCING_ENABLED
-					float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
-#else
-					float4 startEndUV = _StartEndUV;
-#endif
-
 					o.startEndUV = startEndUV;
 
 					return o;
+				}
+
+				float4 fragTest(internalTessInterp_appdata i):SV_Target
+				{
+					return i.startEndUV;
 				}
 
 				//Tesslation
@@ -229,6 +233,7 @@
 					realUV.x = lerp(bigMapChunkUV.x, bigMapChunkUV.z, uv.x%1);
 					realUV.y = lerp(bigMapChunkUV.y, bigMapChunkUV.w, uv.y%1);
 
+					//return float4(uv.x % 1,0,0,1);
 					//float4 color = tex2D(_TerrainBigMap, realUV);
 					return tex2D(_TerrainBigMap, realUV);
 				}
@@ -255,13 +260,14 @@
 
 				float4 frag(v2f i) : SV_Target
 				{
-					UNITY_SETUP_INSTANCE_ID(i);
 #ifdef UNITY_INSTANCING_ENABLED
+					UNITY_SETUP_INSTANCE_ID(i);
 					float4 alphaTexIndexs = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _AlphaTexIndexs);
 					float4 startEndUV = UNITY_ACCESS_INSTANCED_PROP(TerrainProps, _StartEndUV);
 #else
 					float4 alphaTexIndexs = _AlphaTexIndexs;
 					float4 startEndUV = _StartEndUV;
+					return float4(1, 0, 0, 1);
 #endif
 
 					float2 uv;

@@ -36,10 +36,7 @@ namespace CustomTerrain
 
         public InstanceChunk GetInsideChunk(Vector3 pos)
         {
-            if(insideTerrainInstance == null)
-            {
-                insideTerrainInstance = InstanceMgr.instance.GetInstanceByPos(pos);
-            }
+            insideTerrainInstance = InstanceMgr.instance.GetInstanceByPos(pos);
             if (insideTerrainInstance == null) return null;
 
             return insideTerrainInstance.GetChunkByPos(pos);

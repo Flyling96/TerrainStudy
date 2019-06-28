@@ -145,11 +145,12 @@ namespace CustomTerrain
             for (int j = 0; j < countZ; j++)
             {
                 for (int i = 0; i < countX; i++)
-                {
+                {   
                     int index = j * countX + i;
                     instanceChunkGos[index] = new GameObject(transform.name + "_chunk" + index);
                     instanceChunkGos[index].transform.SetParent(this.transform);
                     instanceChunkGos[index].transform.localScale = Vector3.one;
+                    //instanceChunkGos[index].AddComponent<MeshCollider>();
                     instanceChunkGos[index].transform.position = transform.position + new Vector3(i * tChunkWidth, 0, j * tChunkLength);
                     instanceChunkGos[index].transform.rotation = rotation;
                 }
